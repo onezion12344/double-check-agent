@@ -1,0 +1,8 @@
+name: fact-check
+version: "1.1.0"
+description: >
+  Pre-answer verification + Post-answer fact-checking for Hermes Agent.
+  Merges SIFT/IFCN/CoVe/FIRE/FABLE into a 5-phase verification pipeline.
+  Auto-verifies factual claims (prices, times, addresses, numbers) before
+  the agent answers, and checks dense responses for accuracy after delivery.
+requires_env: []
