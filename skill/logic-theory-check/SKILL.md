@@ -1,7 +1,7 @@
 ---
 name: logic-theory-check
 description: "逻辑与理论核查。在事实基础上检查论证结构、因果推理、谬误识别、理论一致性。与 fact-check 互补使用。"
-version: 1.0.0
+version: 1.1.0
 ---
 
 # 逻辑与理论核查
@@ -31,14 +31,78 @@ version: 1.0.0
 
 ## 学术框架来源
 
-| 框架 | 核心 | 来源 |
+| 框架 | 核心 | 来源 | 关键数据 |
+|:-----|:-----|:-----|:---------|
+| **FLICC** | Fake experts, Logical fallacies, Impossible expectations, Cherry picking, Conspiracy | Cook et al. (science denial, Skeptical Science) | NLP 自动化检测 F1 比前作高 2.5-3.5× (Nature Sci Rep 2024) |
+| **Toulmin Model** | Claim → Data → Warrant → Qualifier → Rebuttal → Backing | Toulmin, *The Uses of Argument* (1958) | Johnson & Blair 基于此建了 3 类基本谬误 (Informal Logic 1983) |
+| **Jeong et al. Prompt Ranking** | Counterargument + Explanation + Goal 三重上下文增强 prompt | NAACL Findings 2025, arXiv:2503.23363 | Zero-shot F1 最高 +0.60, 微调 +0.45；5 数据集 29 谬误类型 |
+| **FoVer** | 自然语言→一阶逻辑→自动验证 | TACL (MIT Press) 2025 | 代码: github.com/peiyu-cn/FoVer |
+| **CLOVER** | 组合式一阶逻辑翻译+验证（FoVer 后续） | arXiv:2410.08047 (2024) | 神经符号方法提升复杂逻辑推理 |
+| **Jin et al. LOGIC** | 首个逻辑谬误检测数据集，2,449条教育对话，13种谬误 | ACL Findings 2022 | 后续所有论文的 benchmark 起点 |
+| **Hamborg** | Media bias: word choice, labeling, framing | Springer 2023 | 跨学科框架，已用于 NLP 自动化偏见检测 |
+| **LLM Fallacy Detection Survey** | LLaMA/Qwen/Gemma/Phi 全面对比 | Springer LNCS 2025 | 强在循环论证/草率概括，弱在复杂类比/统计谬误 |
+| **Argument Mining Survey** | 综述：prompting / instruction tuning / RAG / synthetic data | arXiv:2506.16383 (2025) | 涵盖 claim/evidence/stance/summarization 全部子任务 |
+
+## 论文关键发现（可直接用于实践）
+
+### Jeong et al. (2025) — Prompt Ranking 方法
+
+```
+核心方法：三步走
+  Step 1 - 对每个论证生成 3 种隐式上下文：
+    Counterargument（反论）: "这个论证的反对观点是什么？"
+    Explanation（解释）: "这个论证的逻辑是什么？"
+    Goal（目标）: "这个论证想要达到什么目的？"
+
+  Step 2 - 用每个上下文生成查询问题（query），计算置信度分数
+  Step 3 - 按置信度排序，把排序信息输入最终分类 prompt
+
+关键发现：
+  • Explanation 查询在所有数据集上表现最好
+  • Goal 查询在意图驱动的谬误（诉诸情感、蓄意谬误）上表现好
+  • Counterargument 查询在简单谬误（诉诸大众、稻草人）上有效
+  • 提供排序信息比不提供高很多，随机排序反而有害
+  • GPT-4 + Prompt Ranking 在 COVID-19 数据集上 F1=0.76（base 仅 0.25）
+```
+
+### LLM 在不同谬误类型上的表现
+
+| 表现 | 谬误类型 | 说明 |
+|:-----|:---------|:-----|
+| ✅ **强** | 循环论证、诉诸大众、标语化 (Slogans)、终止思考的陈词滥调 | 结构简单，模式固定 |
+| 🟡 **中** | 稻草人、虚假二分、滑坡、诉诸情感、红鲱鱼 | LLM 需要推理解码，Confidence 波动大 |
+| ❌ **弱** | 虚假类比、逃避举证责任、统计复杂谬误、辛普森悖论 | 需要背景知识和多步推理 |
+
+### Jin et al. (2022) 的 LOGIC 数据集分布
+
+| 谬误类型 | 比例 | 难度 |
+|:---------|:-----|:-----|
+| 循环论证、草率概括 | 高 | 低 |
+| 虚假因果、滑坡 | 中 | 中 |
+| 虚假二分、组成部分谬误 | 低 | 高 |
+
+### 数据集参考
+
+| 数据集 | 规模 | 领域 | 谬误类型数 | 可用性 |
+|:-------|:-----|:-----|:----------|:-------|
+| PROPAGANDA (Da San Martino 2019) | 12,267 | 新闻/政治 | 18 | 公开 |
+| ARGOTARIO (Habernal 2017) | 1,338 | 对话/通用 | 6 | 公开 |
+| LOGIC (Jin 2022) | 2,449 | 教育对话 | 13 | 公开 |
+| COVID-19 (Musi 2022) | 154 | 社交媒体/新冠 | 11 | 公开 |
+| CLIMATE (Alhindi 2022) | 685 | 新闻/气候 | 11 | 公开 |
+
+## LLM 时代论证挖掘方法论（整合自 2025 综述）
+
+本 skill 在第 2 轮外部验证中，可以用以下 LLM 方法论增强：
+
+| 方法 | 用法 | 参考 |
 |:-----|:-----|:-----|
-| **FLICC** | Fake experts, Logical fallacies, Impossible expectations, Cherry picking, Conspiracy | Cook et al. (science denial) |
-| **Toulmin Model** | Claim → Data → Warrant → Qualifier → Rebuttal → Backing | Toulmin, 1958 |
-| **Johnson & Blair** | Irrelevant reason / Hasty conclusion / Problematic premise | Informal Logic, 1983 |
-| **FoVer** | First-order logic verification of NL reasoning | TACL, MIT Press |
-| **Hamborg** | Media bias: word choice, labeling, framing | NLP bias detection |
-| **LLM Fallacy Detection** | LLMs strong on simple fallacies (circular reasoning), weak on complex | ACL/NAACL 2025 |
+| **Prompt-based** | Zero-shot 或 few-shot prompt 直接检测谬误 | Jeong 2025, ZeroStance 2024 |
+| **Prompt Ranking** | 生成多个推理路径 → 按置信度排序 → 选最优 | Jeong 2025 (NAACL) |
+| **FoVer 形式化** | NL→FOL→自动检验逻辑有效性 | Pei 2025 (TACL) |
+| **CLOVER 组合式** | 分解复杂论证 → 逐段 FOL → 组合验证 | arXiv:2410.08047 |
+| **RAG + 证据检索** | 检索外部知识来验证论证的前提是否成立 | OpenDebateEvidence 2024 |
+| **Synthetic Data** | 用 LLM 合成训练数据增强 debiasing | Wagner 2025 |
 
 ## 触发条件
 
@@ -305,10 +369,35 @@ delegate_task(tasks=[
 
 ## 参考
 
-- Cook, J. et al. *Deconstructing climate misinformation to identify reasoning errors*. (FLICC taxonomy)
-- Toulmin, S. (1958). *The Uses of Argument*. (Toulmin Model)
-- Johnson, R. H. & Blair, J. A. (1983). *Logical Self-Defense*. (3 basic fallacies)
-- Bradford Hill, A. (1965). "The Environment and Disease: Association or Causation?" (因果标准)
-- FoVer: First-Order Logic Verification for NL Reasoning. TACL, MIT Press.
-- Hamborg, F. et al. *Revealing Media Bias in News Articles*. (Bias taxonomy)
-- Wahba, M. A. & Bridwell, L. G. (1976). "Maslow reconsidered: A review of research on the need hierarchy theory."
+### 核心论文
+
+- Jeong, J., Jang, H., Park, H. (2025). *Large Language Models Are Better Logical Fallacy Reasoners with Counterargument, Explanation, and Goal-Aware Prompt Formulation*. NAACL Findings 2025. arXiv:[2503.23363](https://arxiv.org/abs/2503.23363). 代码: [github.com/jw9603/Logical_Fallacy](https://github.com/jw9603/Logical_Fallacy)
+- Pei, Y., Du, Y., Jin, X. (2025). *FoVer: First-Order Logic Verification for Natural Language Reasoning*. TACL, MIT Press. [aclanthology.org/2025.tacl-1.61](https://aclanthology.org/2025.tacl-1.61/). 代码: [github.com/peiyu-cn/FoVer](https://github.com/peiyu-cn/FoVer)
+- Jin, Z. et al. (2022). *Logical Fallacy Detection*. ACL Findings 2022. [aclanthology.org](https://aclanthology.org/2022.findings-emnlp.532/). 数据集 LOGIC: 2,449 samples, 13 fallacy types.
+- CLOVER: *Compositional First-Order Logic Translation and Verification*. arXiv:[2410.08047](https://arxiv.org/abs/2410.08047)
+- Hong, R. et al. (2024). *A Closer Look at the Self-Verification Abilities of Large Language Models in Logical Reasoning*. NAACL 2024.
+
+### 谬误与论证框架
+
+- Cook, J. et al. *Deconstructing climate misinformation to identify reasoning errors*. (FLICC taxonomy). Skeptical Science. Nature Scientific Reports 2024: [Technocognitive approach](https://www.nature.com/articles/s41598-024-76139-w)
+- Toulmin, S. (1958). *The Uses of Use of Argument*. Cambridge University Press. (Toulmin Model)
+- Johnson, R. H. & Blair, J. A. (1983). *Logical Self-Defense*. (3 basic fallacies: irrelevant reason, hasty conclusion, problematic premise)
+- Hamborg, F. et al. (2023). *Revealing Media Bias in News Articles*. Springer. ISBN 978-3-031-17692-0
+- Bradford Hill, A. (1965). "The Environment and Disease: Association or Causation?" *Proceedings of the Royal Society of Medicine*.
+
+### 综述
+
+- Li, H. et al. (2025). *Large Language Models in Argument Mining: A Survey*. arXiv:[2506.16383](https://arxiv.org/abs/2506.16383)
+- *Large Language Models for Logical Fallacy Detection*. Springer LNCS 2025. [dl.acm.org](https://dl.acm.org/doi/10.1007/978-981-96-8197-6_29)
+- Wang, X. et al. (2025). *When Automated Fact-Checking Meets Argumentation*. SAGE Journals. [hal.science](https://hal.science/hal-05017906/)
+- Wahba, M. A. & Bridwell, L. G. (1976). "Maslow reconsidered: A review of research on the need hierarchy theory." *Organizational Behavior and Human Performance*.
+
+### 数据集
+
+| 数据集 | 来源 | 链接 |
+|:-------|:-----|:-----|
+| PROPAGANDA | Da San Martino et al. (2019) | 公开 |
+| ARGOTARIO | Habernal et al. (2017) | 公开，含教育游戏 |
+| LOGIC | Jin et al. (2022) | [GitHub](https://github.com/) |
+| COVID-19 | Musi et al. (2022) | 公开 |
+| CLIMATE | Alhindi et al. (2022) | 公开 |
