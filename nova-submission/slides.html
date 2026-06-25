@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Double-Check — NOVA 2026 Pitch Deck</title>
+<style>
+  :root {
+    --bg:#000;--text:#f5f5f7;--dim:#86868b;--accent:#6c5ce7;--green:#00c853;--red:#ff5252;--yellow:#ffd600;
+    --font: -apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hidden}
+  .deck{width:100vw;height:100vh;position:relative}
+  .slide{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    justify-content:center;align-items:center;padding:80px 60px;
+    opacity:0;transition:opacity .4s;text-align:center;
+  }
+  .slide.active{opacity:1;z-index:1}
+  h2{font-size:2.8rem;font-weight:700;letter-spacing:-1.5px;margin-bottom:20px;line-height:1.15}
+  h3{font-size:1.8rem;font-weight:600;margin-bottom:16px}
+  p{font-size:1.1rem;color:var(--dim);max-width:700px;line-height:1.7}
+  .big{font-size:5rem;font-weight:700;letter-spacing:-3px;line-height:1}
+  .num{font-size:3rem;font-weight:700;letter-spacing:-1.5px}
+  .tag{display:inline-block;padding:4px 14px;border-radius:12px;font-size:.75rem;font-weight:600;margin-bottom:24px}
+  .tag-accent{background:rgba(108,92,231,.2);color:var(--accent);border:1px solid rgba(108,92,231,.3)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px;width:100%;max-width:900px;margin-top:32px}
+  .card{background:#111;border:1px solid #222;border-radius:16px;padding:28px 24px;text-align:center}
+  .card h4{font-size:1rem;margin-bottom:8px}
+  .card p{font-size:.85rem}
+  .pipeline{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:32px}
+  .step{flex:1;min-width:100px;max-width:130px;background:#111;border:1px solid #222;border-radius:12px;padding:16px 12px;text-align:center;font-size:.75rem}
+  .step-num{width:32px;height:32px;border-radius:50%;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem}
+  .step-name{font-weight:600;font-size:.78rem;margin-bottom:4px}
+  .step-desc{color:var(--dim);font-size:.7rem;line-height:1.3}
+  .footer{position:fixed;bottom:24px;left:0;right:0;text-align:center;color:var(--dim);font-size:.7rem;z-index:2}
+  .nav{position:fixed;bottom:24px;right:24px;z-index:2;display:flex;gap:12px}
+  .nav-btn{background:rgba(255,255,255,.08);border:1px solid #333;color:var(--text);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:.8rem}
+  .nav-btn:hover{background:rgba(255,255,255,.12)}
+  .page-num{font-size:.7rem;color:var(--dim)}
+
+  @media(max-width:768px){.slide{padding:40px 24px}h2{font-size:2rem}.big{font-size:3rem}.num{font-size:2rem}}
+</style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+<!-- Slide 1: Title -->
+<div class="slide active"><div class="tag tag-accent">NOVA 2026 · Social Impact</div>
+<h2>Double-Check</h2><p style="font-size:1.3rem">A 5-phase AI fact verification pipeline<br>that catches what LLMs miss</p>
+<p style="margin-top:40px;font-size:.85rem">HUANG Ziyang (Harry) · The University of Hong Kong</p>
+</div>
+
+<!-- Slide 2: Problem -->
+<div class="slide"><div class="tag tag-accent">The Problem</div>
+<h2>LLMs hallucinate at scale</h2>
+<p>A 5% error rate × billions of AI agent interactions = millions of wrong facts daily. Even frontier models get 37.5% of factual queries wrong.</p>
+<div class="grid" style="grid-template-columns:repeat(4,1fr)">
+<div class="card"><h4 style="color:var(--red)">50%</h4><p>Prices wrong</p></div>
+<div class="card"><h4 style="color:var(--yellow)">50%</h4><p>Stats wrong</p></div>
+<div class="card"><h4 style="color:var(--yellow)">30%</h4><p>Schedules wrong</p></div>
+<div class="card"><h4>20%</h4><p>Specs wrong</p></div>
+</div><p style="margin-top:24px;font-size:.85rem">Tested on DeepSeek V4 Flash: 40 questions across prices, specs, stats, schedules</p>
+</div>
+
+<!-- Slide 3: Existing Solutions Gap -->
+<div class="slide"><div class="tag tag-accent">The Gap</div>
+<h2>Journalism or Academia.<br>Not both.</h2>
+<div class="grid" style="grid-template-columns:1fr 1fr">
+<div class="card"><h4>📰 Journalism Standards</h4><p>SIFT, IFCN, Truth Sandwich — rigorous source verification. But purely manual, not agent-compatible.</p></div>
+<div class="card"><h4>🧠 LLM Research</h4><p>CoVe, FIRE, VeriChain — automated at scale. But single-pass classification, no source discipline.</p></div>
+</div>
+<p style="margin-top:32px;font-size:.85rem">Our insight: merge both. Journalism's rigor + LLM's speed.</p>
+</div>
+
+<!-- Slide 4: Solution -->
+<div class="slide"><div class="tag tag-accent">Our Approach</div>
+<h2>5-Phase Hybrid Pipeline</h2>
+<div class="pipeline">
+<div class="step"><div class="step-num" style="background:rgba(255,255,255,.08)">0</div><div class="step-name">Dedup</div><div class="step-desc">Skip/check</div></div>
+<div class="step"><div class="step-num" style="background:rgba(68,138,255,.15);color:#448aff">0.5</div><div class="step-name">Pre-answer</div><div class="step-desc">Extract claims</div></div>
+<div class="step"><div class="step-num" style="background:rgba(108,92,231,.15);color:var(--accent)">1</div><div class="step-name" style="color:var(--accent)">SIFT</div><div class="step-desc">Source audit</div></div>
+<div class="step"><div class="step-num" style="background:rgba(0,200,83,.15);color:var(--green)">2</div><div class="step-name" style="color:var(--green)">CoVe+FIRE</div><div class="step-desc">Cross-verify</div></div>
+<div class="step"><div class="step-num" style="background:rgba(255,214,0,.15);color:var(--yellow)">3</div><div class="step-name" style="color:var(--yellow)">FABLE</div><div class="step-desc">Impact grade</div></div>
+<div class="step"><div class="step-num" style="background:rgba(255,82,82,.15);color:var(--red)">4</div><div class="step-name" style="color:var(--red)">Truth</div><div class="step-desc">Correct & source</div></div>
+</div>
+<p style="margin-top:32px;font-size:.85rem">Each phase one job. Never search AND judge in the same round.<br>18 papers + 10 journalism standards merged.</p>
+</div>
+
+<!-- Slide 5: Architecture -->
+<div class="slide"><div class="tag tag-accent">Architecture</div>
+<h2>How It Fits In</h2>
+<p style="font-family:monospace;font-size:.9rem;line-height:2;background:#111;padding:24px 40px;border-radius:12px;margin-top:20px">
+User Query → [P0.5 Pre-verify] → LLM Response<br>
+→ [P1 SIFT] → [P2 CoVe+FIRE search]<br>
+→ [P3 FABLE grade] → [P4 Truth Sandwich]<br>
+→ Delivered with ✅/🔧/⚡/❌ inline tags
+</p>
+<div class="grid" style="grid-template-columns:repeat(3,1fr);margin-top:24px">
+<div class="card"><p style="font-size:.85rem;color:var(--dim)">Hermes Plugin<br>(always-on, every turn)</p></div>
+<div class="card"><p style="font-size:.85rem;color:var(--dim)">Hermes Skill<br>(deep audit, 4 rounds)</p></div>
+<div class="card"><p style="font-size:.85rem;color:var(--dim)">Multi-agent<br>(≥15 claims → parallel)</p></div>
+</div>
+</div>
+
+<!-- Slide 6: Methodology -->
+<div class="slide"><div class="tag tag-accent">Methodology</div>
+<h2>31 Frameworks</h2>
+<div class="grid" style="grid-template-columns:repeat(3,1fr)">
+<div class="card"><h4>📰 Journalism (10)</h4><p>SIFT · IFCN · Truth Sandwich<br>IMVAIN · PolitiFact 7-Step</p></div>
+<div class="card"><h4>🧠 Academic (12)</h4><p>CoVe · FIRE · FABLE · VeriChain<br>FLICC · FoVer · CLOVER</p></div>
+<div class="card"><h4>🤖 Multi-Agent (9)</h4><p>TRUST Agents · GKMAD<br>VeriChain · Agent platforms</p></div>
+</div>
+<p style="margin-top:24px;font-size:.85rem">Each framework mapped to a specific round. No round borrows from the wrong tradition.</p>
+</div>
+
+<!-- Slide 7: Benchmark - Big Numbers -->
+<div class="slide"><div class="tag tag-accent">Results</div>
+<h2>We tested it. 40 questions. 3 judges.</h2>
+<div class="grid" style="grid-template-columns:repeat(2,1fr);max-width:600px">
+<div class="card" style="border-color:var(--red)"><p style="color:var(--dim);font-size:.8rem">Raw DeepSeek V4 Flash</p><div class="num" style="color:var(--red)">62.5%</div></div>
+<div class="card" style="border-color:var(--green);border-width:2px"><p style="color:var(--dim);font-size:.8rem">+ Double-Check Pipeline</p><div class="num" style="color:var(--green)">97.5%</div></div>
+</div>
+<p style="margin-top:20px;font-size:.85rem;color:var(--dim)">+35 percentage points · 15/15 errors caught · 0 false positives</p>
+</div>
+
+<!-- Slide 8: By Category -->
+<div class="slide"><div class="tag tag-accent">By Category</div>
+<h2>Every category improved</h2>
+<div class="grid" style="grid-template-columns:repeat(4,1fr)">
+<div class="card"><p style="font-size:.75rem;color:var(--dim)">Prices</p><div class="num" style="font-size:2rem">50%→100%</div></div>
+<div class="card"><p style="font-size:.75rem;color:var(--dim)">Specs</p><div class="num" style="font-size:2rem">80%→100%</div></div>
+<div class="card"><p style="font-size:.75rem;color:var(--dim)">Stats</p><div class="num" style="font-size:2rem">50%→100%</div></div>
+<div class="card"><p style="font-size:.75rem;color:var(--dim)">Schedules</p><div class="num" style="font-size:2rem">70%→100%</div></div>
+</div>
+<p style="margin-top:32px;font-size:.85rem">V4 Pro even better: 72.5%→97.5%. Both models share the same blind spots — the pipeline catches both.</p>
+</div>
+
+<!-- Slide 9: Error Types -->
+<div class="slide"><div class="tag tag-accent">Error Patterns</div>
+<h2>What LLMs get wrong</h2>
+<div class="grid" style="grid-template-columns:repeat(2,1fr)">
+<div class="card"><h4 style="color:var(--red)">Price underestimation</h4><p>LLMs guess ¥200 for $69.99 items.<br>Launch prices cached as current.</p></div>
+<div class="card"><h4 style="color:var(--red)">GPU gen confusion</h4><p>Adreno 730 vs 740.<br>Same chip family, different model.</p></div>
+<div class="card"><h4 style="color:var(--red)">Feature hallucination</h4><p>"This keyboard has a touchpad."<br>It doesn't. LLMs assume features.</p></div>
+<div class="card"><h4 style="color:var(--red)">Numerical fabrication</h4><p>"15g protein." Actual: 29.8g.<br>LLMs guess "reasonable" numbers.</p></div>
+</div>
+</div>
+
+<!-- Slide 10: V4 Flash vs V4 Pro -->
+<div class="slide"><div class="tag tag-accent">Multi-Judge</div>
+<h2>We don't pretend LLMs judge LLMs perfectly</h2>
+<div class="grid" style="grid-template-columns:repeat(3,1fr)">
+<div class="card"><h4>Judge A</h4><p>V4 Flash<br><span style="color:var(--red)">62.5%</span></p></div>
+<div class="card"><h4>Judge B</h4><p>V4 Pro<br><span style="color:var(--yellow)">72.5%</span></p></div>
+<div class="card"><h4>Judge C</h4><p>Human-verified sources</p></div>
+</div>
+<p style="margin-top:24px;font-size:.85rem">6 questions — both models wrong. 3 questions — no single correct answer. 3 questions flagged for human arbitration. <strong style="color:var(--text)">Transparency over false certainty.</strong></p>
+</div>
+
+<!-- Slide 11: Prod Case Studies -->
+<div class="slide"><div class="tag tag-accent">Production Tested</div>
+<h2>Not a prototype. Shipped.</h2>
+<div class="grid" style="grid-template-columns:1fr 1fr">
+<div class="card"><h4>🚶 Camino Planning</h4><p style="font-size:.85rem">55 claims · 4 wrong addresses · 6 wrong prices · 1 🔴 critical · <span style="color:var(--green)">0% error rate</span></p></div>
+<div class="card"><h4>📱 AI Foldable</h4><p style="font-size:.85rem">44 claims · prices 2-2.6× off · GPU gen wrong · touchpad hallucinated · <span style="color:var(--green)">0% final error</span></p></div>
+</div>
+</div>
+
+<!-- Slide 12: Social Impact -->
+<div class="slide"><div class="tag tag-accent">Social Impact</div>
+<h2>Misinformation is a top-5 global risk</h2>
+<p>AI agents produce content at unprecedented scale — with no built-in verification.</p>
+<div class="grid" style="grid-template-columns:repeat(2,1fr);margin-top:32px">
+<div class="card"><h4>🛡️ Individual protection</h4><p>Users get verified, not just generated, information</p></div>
+<div class="card"><h4>🏛️ Platform governance</h4><p>Pre-publication verification for content platforms</p></div>
+<div class="card"><h4>📚 Educational tool</h4><p>Transparent methodology teaches verification literacy</p></div>
+<div class="card"><h4>🔓 Open standard</h4><p>MIT-licensed. Works with any LLM-powered system.</p></div>
+</div>
+</div>
+
+<!-- Slide 13: Competitive Edge -->
+<div class="slide"><div class="tag tag-accent">Why It Wins</div>
+<h2>vs existing verification tools</h2>
+<div class="grid" style="grid-template-columns:repeat(2,1fr)">
+<div class="card" style="border-color:var(--red)"><h4 style="color:var(--red)">verify_claims</h4><p>Auto-verify tool. Searches for related content. Returns ✅ for EVERYTHING. <strong>0% error catch rate.</strong></p></div>
+<div class="card" style="border-color:var(--yellow)"><h4 style="color:var(--yellow)">Simple Search</h4><p>Finds supporting text, not contradictions. Confirms the claim, never tests it.</p></div>
+<div class="card" style="border-color:var(--green);border-width:2px"><h4 style="color:var(--green)">Double-Check</h4><p>CoVe independent verification. FIRE iterative search. IFCN 2-source standard. <strong>100% error catch rate.</strong></p></div>
+</div>
+</div>
+
+<!-- Slide 14: Open Source -->
+<div class="slide"><div class="tag tag-accent">Open Source</div>
+<h2>Free. MIT. Production-ready.</h2>
+<div class="grid" style="grid-template-columns:repeat(3,1fr)">
+<div class="card"><h4>Hermes Plugin</h4><p>Always-on verification<br>every agent turn</p></div>
+<div class="card"><h4>Hermes Skill</h4><p>Deep audit mode<br>full 4-round verification</p></div>
+<div class="card"><h4>Landing Page</h4><p>factcheck.onezion.top<br>live demo + video</p></div>
+</div>
+<p style="margin-top:32px;font-size:.85rem">Powered by DeepSeek V4 Pro · Fine-tuned for factual verification</p>
+</div>
+
+<!-- Slide 15: Thank You -->
+<div class="slide"><div class="tag tag-accent">NOVA 2026</div>
+<div class="big" style="background:linear-gradient(135deg,#a78bfa,#6c5ce7,#448aff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:20px">Double-Check</div>
+<p style="font-size:1.2rem">No trust required. Just verification.</p>
+<p style="margin-top:40px;font-size:.85rem;color:var(--dim)">github.com/onezion12344/fact-check-agent<br>factcheck.onezion.top</p>
+</div>
+
+</div>
+
+<div class="nav">
+  <button class="nav-btn" onclick="prev()">← Prev</button>
+  <span class="page-num" id="pagenum">1 / 15</span>
+  <button class="nav-btn" onclick="next()">Next →</button>
+</div>
+
+<script>
+let current = 0;
+const slides = document.querySelectorAll('.slide');
+const total = slides.length;
+
+function show(n) {
+  slides[current].classList.remove('active');
+  current = ((n % total) + total) % total;
+  slides[current].classList.add('active');
+  document.getElementById('pagenum').textContent = `${current+1} / ${total}`;
+}
+
+function next() { show(current + 1); }
+function prev() { show(current - 1); }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); next(); }
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); prev(); }
+});
+</script>
+
+</body>
+</html>

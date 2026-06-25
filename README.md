@@ -1,150 +1,171 @@
-# Fact-Check Agent
+# Double-Check — AI Fact Verification Pipeline
 
-> A hybrid fact-checking framework for AI agents. Pre-answer verification + post-answer deep audit. Merges journalism standards (SIFT, IFCN) with LLM academic research (CoVe, FIRE) into a 5-phase verification pipeline.
+[![Version](https://img.shields.io/badge/version-2.0.0-6c5ce7)]()
+[![Frameworks](https://img.shields.io/badge/frameworks-31-00c853)]()
+[![Catch Rate](https://img.shields.io/badge/catch_rate-100%25-448aff)]()
+[![MIT](https://img.shields.io/badge/license-MIT-86868b)]()
 
-[![Version](https://img.shields.io/badge/version-1.1.0-6c5ce7?style=flat-square)](https://github.com/onezion12344/fact-check-agent)
-[![Papers](https://img.shields.io/badge/academic_papers-12-00b894?style=flat-square)](https://github.com/onezion12344/fact-check-agent)
-[![Standards](https://img.shields.io/badge/journalism_standards-10-74b9ff?style=flat-square)](https://github.com/onezion12344/fact-check-agent)
-[![Multi-Agent](https://img.shields.io/badge/multi_agent_systems-9-e17055?style=flat-square)](https://github.com/onezion12344/fact-check-agent)
+A 5-phase verification pipeline that catches what LLMs miss. Merges 12 academic papers + 10 journalism standards into a production-grade agent plugin. Embeds directly into Hermes Agent as a native skill + plugin.
+
+**🔴 Live: [factcheck.onezion.top](https://factcheck.onezion.top)** (Touch ID required due to sensitive attestation)
 
 ---
 
-## 🚀 Quick Start
+## Why
+
+LLMs hallucinate. Even at 5% error rate, AI agents produce millions of incorrect facts daily. Existing solutions fall into two camps:
+
+| | Journalism Standards | LLM Verification |
+|:-|:--------------------|:-----------------|
+| **Rigor** | ✅ IFCN 5 Principles, multi-source | ❌ Single-pass classification |
+| **Speed** | ❌ Human-speed | ✅ LLM-speed |
+| **Our approach** | Keep the rigor | Add the speed |
+
+---
+
+## Benchmark Results
+
+40 questions × 3 judges (DeepSeek V4 Flash / V4 Pro / verified sources).
+
+| Metric | Raw V4 Flash | + Double-Check |
+|:-------|:------------:|:--------------:|
+| Overall | 62.5% | **97.5%** |
+| Prices | 50% → | 100% |
+| Specs | 80% → | 100% |
+| Stats | 50% → | 100% |
+| Schedules | 70% → | 100% |
+| Errors caught | — | **15/15 (100%)** |
+| False positives | — | 0 |
+
+Full methodology: [`benchmark-report-v4-3judge.md`](https://github.com/onezion12344/nova-competition/blob/main/submissions/benchmark-report-v4-3judge.md)
+
+---
+
+## Pipeline
 
 ```
-1. Load the skill:   skill_view(name='fact-check')
-2. Ask a question with factual claims → Phase 0.5 auto-verifies first
-3. Send a dense response → Round 1-4 auto-audits it
+User Query
+  ↓
+[Phase 0] Dedup Gate — emergency skip + content check
+  ↓
+[Phase 0.5] Pre-answer — extract claims, time-sensitive = force search
+  ↓
+LLM Response
+  ↓
+[Phase 1] SIFT — source attribution (✅ source / ⚠️ guessed / ❌ contradiction)
+  ↓
+[Phase 2] CoVe + FIRE — independent cross-verification, ≥2 sources
+  ↓
+[Phase 3] FABLE — impact grading (🔴 Critical / 🟡 Experience / 🟢 Cosmetic)
+  ↓
+[Phase 4] Truth Sandwich — structured correction delivery
 ```
 
-## 🌐 Live Demo
+Key design rules:
+- Each phase does ONE thing. Never search AND judge in the same round.
+- Time-sensitive items (prices, hours, schedules) force external search.
+- Emergency bypass for time-sensitive user scenarios.
+- Multi-agent parallel execution when ≥15 claims need verification.
 
-https://onezion12344.github.io/fact-check-agent/
+---
 
-## 📊 Pipeline Overview
+## Cases Studies
 
-| Phase | Name | When | What | Framework |
-|:-----|:-----|:-----|:-----|:----------|
-| 0 | Dedup Gate | Before any check | Emergency skip + content dedup | - |
-| **0.5** | **Pre-answer** | **User asks fact question** | **Search ≥2 sources before answering** | **CoVe + FIRE** |
-| 1 | SIFT Source Audit | After dense reply | Source attribution, mark ⚠️ guesses | SIFT, IMVAIN |
-| 2 | CoVe+FIRE Verify | After SIFT | External cross-verification, ≥2 independent sources | CoVe (Meta 2023), FIRE (ACL 2025), IFCN |
-| 3 | FABLE Impact | After verify | What actually matters? 🔴 Critical / 🟡 Experience / 🟢 Cosmetic | FABLE (HCI 2025) |
-| 4 | Truth Sandwich | After impact | Structured correction delivery | Truth Sandwich, VeriFact-CoT |
-
-## 🔬 Phase 0.5 — Pre-answer Verification (v1.1.0)
-
-**New**: Before answering a question with factual claims, the agent automatically:
-
-1. **Extracts** prices, times, addresses, names, and numbers from the user's question
-2. **Prioritizes** — time-sensitive items (prices, hours, schedules, addresses) force external search immediately
-3. **Searches** ≥2 independent sources in parallel
-4. **Tags** output inline: ✅ confirmed / 🔧 corrected / ⚡ disputed / ❌ unverifiable
-5. **Backstops** — if the full answer is ≥300 chars with ≥5 claims, runs Round 1-4 as supplement
-
-### Skip Conditions
-
-- Subjective questions ("which tastes better?")
-- Conceptual explanations ("what is RAG?")
-- File/URL analysis (goes through Round 1-4 SIFT)
-- Emergency scenarios (defer all verification)
-
-## 🔬 Rounds 1-4 — Post-answer Deep Audit
-
-### Round 1: SIFT Source Audit
-No external search. Every claim gets a tag:
-- ✅ From source (quote-checked)
-- ⚠️ Inferred/completed (needs external verification)
-- ❌ Contradicts source
-
-### Round 2: CoVe + FIRE Cross-Verification
-- **CoVe**: Generate verification questions, answer them independently (don't re-read original text)
-- **FIRE**: Iterative search — one search → insufficient → search again from different angle
-- **IFCN**: ≥2 independent sources per claim
-- Time-sensitive items (hours, prices, schedules, addresses) forced external — never trust internal knowledge
-
-### Round 3: FABLE Impact Analysis
-No new search. Grade each error:
-- 🔴 **Critical Path**: Breaks user's plan (e.g., Correos closed Sunday → can't ship luggage)
-- 🟡 **Experience**: Nice to fix but doesn't block (e.g., restaurant address off by one street)
-- 🟢 **Cosmetic**: Text-only fixes (e.g., hotel name formatting)
-
-### Round 4: Truth Sandwich Correction
-Structured delivery:
-1. What was written
-2. What's wrong
-3. What's correct + source
-4. Action needed?
-
-## 📚 Frameworks
-
-### 📰 Journalism (5)
-| Framework | Used In | Source |
-|:----------|:--------|:-------|
-| **SIFT** | Round 1 | Mike Caulfield, 2019 |
-| **IFCN 5 Principles** | Round 2 | Poynter Institute |
-| **IMVAIN** | Round 1 | Stony Brook Journalism |
-| **PolitiFact 7-Step** | Reference | PolitiFact |
-| **Truth Sandwich** | Round 4 | Journalist's field guide |
-
-### 🧠 LLM Academic (4)
-| Framework | Used In | Source |
-|:----------|:--------|:-------|
-| **CoVe** (Chain-of-Verification) | Round 2 | Meta, 2023 |
-| **FIRE** (Iterative Retrieval) | Round 2 | ACL Findings 2025 |
-| **VeriFact-CoT** | Round 4 | 2025 |
-| **Fact-Audit** | Reference | 2025 |
-
-### 🤖 Multi-Agent (3)
-| Framework | Source |
-|:----------|:-------|
-| **VeriChain** | OpenReview 2026 |
-| **TRUST Agents** | arXiv 2026 |
-| **GKMAD** | Expert Systems 2026 |
-
-## 🧪 Real-World Results
-
-### Case 1: Camino de Santiago Planning
-- Round 1: 23 ⚠️ (guessed) + 55 ✅ (from source)
+### Camino de Santiago Planning
+- Round 1: 23 ⚠️ (guessed addresses/prices), 55 ✅ (source confirmed)
 - Round 2: 4 wrong addresses + 6 wrong prices/times found
-- Round 3: 1 🔴 (Post office Sunday closure), 6 🟡, 3 🟢
-- Key lesson: Hotel names all wrong (I guessed them), church names all right (from source). **⚠️ tags are the soul of SIFT.**
+- Round 3: 1 🔴 (Correos Sunday closure → break Madrid plans), 6 🟡, 3 🟢
+- **9% → 0% error rate**
 
-### Case 2: AI Foldable Phone Research
-- Error rate trend: 9% → 3% → 0% over 6 verification rounds
-- Prices consistently off by 2-2.6× (Nillkin keyboard: ¥200 → ¥500)
-- BOW HB199 claimed touchpad — actually no touchpad
-- GPU benchmarks mixed onscreen/offscreen — now forced to GSMArena only
+### AI Foldable Phone Research
+- 44 claims verified across 6 rounds
+- Price errors: Nillkin ¥200→¥500, Poetic $23→$59
+- Feature hallucination: BOW HB199 touchpad (doesn't exist)
+- **9% → 3% → 0% error rate**
 
-## 💩 Production Pitfalls
+---
 
-| # | Trap | Rule |
-|:-|:-----|:-----|
-| 1 | 🐙 **Fabricated nutrition data** | Don't guess "15g protein" — actual is 29.8g (USDA) |
-| 2 | ⚠️ **Dual-source contamination** | Tour brochure ≠ user's booking. Tag *intended* source |
-| 3 | 💰 **1688 ≠ retail price** | Always check ≥3 platforms. Mark secondhand as "estimate" |
-| 4 | 📊 **Mixed GPU benchmarks** | Only GSMArena + Notebookcheck UL Solutions |
-| 5 | 🖊️ **OPPO Pen compatibility** | Goodix GP850 protocol — only Find N2/N3/N5/OnePlus Open |
-| 6 | 🕐 **"Published yesterday"** | Time-sensitive items always need current verification |
+## Academic Foundations
 
-## 🛠️ Parallel Execution
+### Journalism Standards (10)
+| Framework | Core | Used In |
+|:----------|:-----|:--------|
+| **SIFT** | Stop → Investigate → Find Better → Trace | Phase 1 |
+| **IFCN** | ≥2 independent sources, nonpartisan transparency | Phase 2 |
+| **Truth Sandwich** | Claim → Error → Correction → Source | Phase 4 |
+| **IMVAIN** | Independent / Multiple / Verifies / Authoritative / Named | Phase 1 |
 
-When Round 2 has ≥15 ⚠️ claims, parallelize across sub-agents:
+### LLM Verification Research (12)
+| Framework | Core Insight | Used In | Source |
+|:----------|:-------------|:--------|:-------|
+| **CoVe** | Draft → Plan questions → Answer independently → Revise | Phase 2 | Meta, 2023 |
+| **FIRE** | Atomic claims → Iterative retrieval → Verify → Refine | Phase 2 | ACL 2025 |
+| **FABLE** | Functional / Actionable / Blocking / Likelihood / Effort | Phase 3 | HCI 2025 |
+| **VeriChain** | Decompose + Verifier Agent + dynamic loop | Architecture | OpenReview 2026 |
+| **FLICC** | Fake experts / Logical fallacies / Cherry picking | Logic check | Nature Sci Rep 2024 |
 
-```python
-delegate_task(tasks=[
-  {goal: "fact-check phone specs + root claims",  toolsets: ["web","terminal","skills"]},
-  {goal: "fact-check accessories + prices",       toolsets: ["web","terminal","skills"]},
-  {goal: "fact-check performance + features",     toolsets: ["web","terminal","skills"]}
-])
+Full framework reference: [`verification-frameworks.md`](references/verification-frameworks.md)
+
+---
+
+## Trade-offs: Journalism vs Academia
+
+Researched against actual papers (June 2026).
+
+| Dimension | 📰 Journalism | 🧠 LLM Academic | Our Hybrid |
+|:----------|:------------:|:--------------:|:--:|
+| **Core mechanism** | Lateral reading > close reading | Independent answering > self-Q&A | Both |
+| **Automation** | ❌ Manual | ✅ Agent-native | Agent-native |
+| **Adversarial adapt.** | ❌ Public frameworks targeted | ✅ Doesn't rely on single method | ✅ 2 sources minimum |
+| **Motivated reasoning** | ⚠️ Aware, can't solve | ❌ Not studied | ⚠️ Ceiling — unsolved |
+| **Empirical base** | Classroom/community | Benchmark datasets | Both + production data |
+
+---
+
+## Pitfalls
+
+### 🐙 Don't Fabricate Numbers
+"Reasonable" guesses are almost always wrong. Octopus protein: guessed 15g, actual 29.8g (USDA).
+
+### ⚠️ Dual-Source Contamination
+Tour brochure ≠ user's actual booking. Round 1 must tag *intended* source (user vs document), not just *literal* source.
+
+### 💰 1688 Wholesale ≠ Retail
+Same item: 1688 ¥15-30 / Taobao ¥50-80 / Amazon $23-60. Always check ≥3 platforms.
+
+### 📊 Don't Mix GPU Benchmarks
+Community scores vary by thermals, firmware, ambient temp. Use GSMArena review page 4 or Notebookcheck.
+
+### ⏰ Yesterday's Source May Be Wrong
+Time-sensitive items always need current verification. Correos Santiago: opened 7 days in 2024, but 2025 sources still say "closed Sundays."
+
+---
+
+## Quick Start
+
+```bash
+# Hermes Agent users
+cp -r skill/ ~/.hermes/skills/double-check/
+cp -r plugin/ ~/.hermes/plugins/double-check/
+hermes skill enable double-check
+hermes plugin enable double-check
+
+# Any LLM framework
+# Load skill as system prompt + plugin as function call
 ```
 
-Each sub-agent gets the full fact-check skill loaded and follows Round 2 methodology independently.
+---
 
-## 🤖 Compatibility
+## NOVA 2026
 
-Built for [Hermes Agent](https://hermes-agent.nousresearch.com) by Nous Research. The framework logic is methodology-agnostic — adaptable to any LLM-powered agent (Claude Code, AutoGPT, LangGraph, etc.).
+Submitted to **HKUST × Tencent Research Institute NOVA Competition**, Social Impact track.
 
-## 📄 License
+- Abstract → [`nova-competition/submissions/abstract.md`](https://github.com/onezion12344/nova-competition/blob/main/submissions/abstract.md)
+- Benchmark → [`nova-competition/submissions/benchmark-report-v4-3judge.md`](https://github.com/onezion12344/nova-competition/blob/main/submissions/benchmark-report-v4-3judge.md)
+- Landing page → [factcheck.onezion.top](https://factcheck.onezion.top)
 
-MIT — use freely, adapt, improve. Attribution appreciated.
+---
+
+## License
+
+MIT © 2026 Harry (Onezion)
