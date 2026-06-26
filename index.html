@@ -3,27 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Double-Check — Fact, Logic & Theory Verification Framework</title>
-<meta name="description" content="A unified verification framework for AI agents that checks facts (prices, times, addresses), logic (fallacies, reasoning), and theory consistency. Merges journalism standards with LLM academic research.">
+<title>Double-Check — AI Fact Verification</title>
+<meta name="description" content="A 5-phase verification pipeline that catches what LLMs miss. 62.5% → 97.5% accuracy.">
 <style>
   :root {
-    --bg: #0a0a0f;
-    --surface: #12121a;
-    --card: #1a1a28;
-    --card-hover: #22223a;
-    --border: #2a2a3e;
+    --bg: #000000;
+    --surface: #0d0d0d;
+    --card: #1a1a1a;
+    --border: #2a2a2a;
     --accent: #6c5ce7;
-    --accent-glow: #6c5ce733;
-    --green: #00b894;
-    --yellow: #fdcb6e;
-    --red: #e17055;
-    --orange: #e67e22;
-    --blue: #74b9ff;
-    --text: #e8e8f0;
-    --text-dim: #8888a0;
-    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --radius: 12px;
-    --radius-sm: 8px;
+    --accent-glow: rgba(108,92,231,0.15);
+    --green: #00c853;
+    --yellow: #ffd600;
+    --red: #ff5252;
+    --blue: #448aff;
+    --text: #f5f5f7;
+    --text-dim: #86868b;
+    --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', sans-serif;
+    --radius: 16px;
+    --radius-lg: 24px;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { scroll-behavior: smooth; }
@@ -31,86 +29,83 @@
     font-family: var(--font);
     background: var(--bg);
     color: var(--text);
-    line-height: 1.7;
-    overflow-x: hidden;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
   }
 
-  /* === NAV === */
+  /* NAV */
   .nav {
     position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-    background: rgba(10,10,15,0.8); backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--border);
-    padding: 0 24px;
-    height: 56px;
+    background: rgba(0,0,0,0.8); backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding: 0 32px; height: 48px;
     display: flex; align-items: center; justify-content: space-between;
   }
-  .nav-brand { font-weight: 700; font-size: 1rem; color: var(--accent); letter-spacing: -0.5px; }
-  .nav-links { display: flex; gap: 24px; list-style: none; }
-  .nav-links a { color: var(--text-dim); text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+  .nav-brand { font-weight: 700; font-size: 0.95rem; color: var(--text); letter-spacing: -0.3px; }
+  .nav-links { display: flex; gap: 28px; list-style: none; }
+  .nav-links a { color: var(--text-dim); text-decoration: none; font-size: 0.82rem; transition: color 0.2s; }
   .nav-links a:hover { color: var(--text); }
+  @media (max-width: 640px) { .nav { padding: 0 16px; } .nav-links { gap: 16px; } .nav-links a { font-size: 0.75rem; } }
 
-  /* === SECTIONS === */
-  section { padding: 100px 24px; max-width: 960px; margin: 0 auto; }
-  @media (max-width: 768px) { section { padding: 64px 20px; } }
+  /* SECTIONS */
+  section { padding: 120px 32px; max-width: 1000px; margin: 0 auto; }
+  @media (max-width: 768px) { section { padding: 80px 20px; } }
 
-  /* === HERO === */
+  /* HERO — Apple style */
   .hero {
-    min-height: 80vh;
-    display: flex; flex-direction: column; justify-content: center;
+    min-height: 90vh; display: flex; flex-direction: column;
+    justify-content: center; text-align: center;
     padding-top: 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: ''; position: absolute;
+    top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(ellipse at center, var(--accent-glow) 0%, transparent 70%);
+    pointer-events: none;
   }
   .hero-badge {
     display: inline-flex; align-items: center; gap: 6px;
     background: var(--accent-glow); color: var(--accent);
-    padding: 4px 12px; border-radius: 20px;
-    font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;
-    margin-bottom: 24px; width: fit-content;
-    border: 1px solid var(--accent);
+    padding: 6px 16px; border-radius: 20px;
+    font-size: 0.78rem; font-weight: 600; margin-bottom: 32px;
+    border: 1px solid rgba(108,92,231,0.3);
+    position: relative;
   }
   .hero h1 {
-    font-size: clamp(2.5rem, 6vw, 4.5rem);
-    font-weight: 800; line-height: 1.1; letter-spacing: -2px;
-    margin-bottom: 20px;
-    background: linear-gradient(135deg, var(--accent), var(--blue));
+    font-size: clamp(3rem, 8vw, 5.5rem);
+    font-weight: 700; line-height: 1.05; letter-spacing: -3px;
+    margin-bottom: 20px; position: relative;
+    background: linear-gradient(135deg, #a78bfa, #6c5ce7, #448aff);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     background-clip: text;
   }
-  .hero p {
-    font-size: 1.15rem; color: var(--text-dim);
-    max-width: 640px; margin-bottom: 32px;
+  .hero-tagline {
+    font-size: clamp(1rem, 3vw, 1.4rem);
+    color: var(--text-dim); max-width: 580px; margin: 0 auto 40px;
+    position: relative; font-weight: 400;
   }
-  .hero-stats {
-    display: flex; gap: 40px; flex-wrap: wrap;
-  }
-  .hero-stat { text-align: center; }
-  .hero-stat-num {
-    font-size: 2rem; font-weight: 800;
-    background: linear-gradient(135deg, var(--green), var(--blue));
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  .hero-stat-label { font-size: 0.8rem; color: var(--text-dim); margin-top: 2px; }
+  .hero-tagline strong { color: var(--text); font-weight: 600; }
 
-  .btn-group { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 40px; }
+  /* BUTTONS */
+  .btn-group { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
   .btn {
     display: inline-flex; align-items: center; gap: 8px;
-    padding: 12px 24px; border-radius: var(--radius-sm);
+    padding: 14px 28px; border-radius: 28px;
     font-size: 0.9rem; font-weight: 600; text-decoration: none;
-    transition: all 0.2s; cursor: pointer;
+    transition: all 0.2s; letter-spacing: -0.2px;
   }
-  .btn-primary {
-    background: var(--accent); color: white;
-    border: 1px solid var(--accent);
-  }
-  .btn-primary:hover { background: #7c6df7; transform: translateY(-1px); box-shadow: 0 4px 20px var(--accent-glow); }
+  .btn-primary { background: var(--accent); color: white; border: none; }
+  .btn-primary:hover { background: #7c6df7; transform: scale(1.02); }
   .btn-outline {
     background: transparent; color: var(--text);
     border: 1px solid var(--border);
   }
-  .btn-outline:hover { border-color: var(--text-dim); background: var(--card); }
+  .btn-outline:hover { border-color: var(--text-dim); background: var(--surface); }
 
-  /* === REVEAL ANIMATIONS === */
-  .reveal { opacity: 0; transform: translateY(30px); transition: all 0.7s cubic-bezier(0.22, 1, 0.36, 1); }
+  /* REVEAL VARIANTS */
+  .reveal { opacity: 0; transform: translateY(24px); transition: all 0.8s cubic-bezier(0.16,1,0.3,1); }
   .reveal.visible { opacity: 1; transform: translateY(0); }
   .reveal-left { opacity: 0; transform: translateX(-40px); transition: all 0.7s cubic-bezier(0.22, 1, 0.36, 1); }
   .reveal-left.visible { opacity: 1; transform: translateX(0); }
@@ -125,747 +120,407 @@
   .stagger.visible > *:nth-child(4) { opacity: 1; transform: translateY(0); transition-delay: 0.4s; }
   .stagger.visible > *:nth-child(5) { opacity: 1; transform: translateY(0); transition-delay: 0.5s; }
   .stagger.visible > *:nth-child(6) { opacity: 1; transform: translateY(0); transition-delay: 0.6s; }
-  .stagger.visible > *:nth-child(7) { opacity: 1; transform: translateY(0); transition-delay: 0.7s; }
-  .stagger.visible > *:nth-child(8) { opacity: 1; transform: translateY(0); transition-delay: 0.8s; }
-  .stagger.visible > *:nth-child(9) { opacity: 1; transform: translateY(0); transition-delay: 0.9s; }
-
   @media (prefers-reduced-motion: reduce) {
-    .reveal, .reveal-left, .reveal-right, .reveal-scale, .stagger > * {
-      opacity: 1; transform: none;
-    }
+    .reveal, .reveal-left, .reveal-right, .reveal-scale, .stagger > * { opacity: 1; transform: none; }
   }
 
-  /* === SECTION HEADERS === */
+  /* SECTION HEADERS */
   .section-tag {
-    font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
-    color: var(--accent); margin-bottom: 8px;
+    font-size: 0.75rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 12px;
   }
-  h2 {
-    font-size: 2rem; font-weight: 700; margin-bottom: 12px;
-    letter-spacing: -0.5px;
-  }
-  .section-sub { color: var(--text-dim); font-size: 1rem; margin-bottom: 40px; max-width: 600px; }
+  h2 { font-size: 2.4rem; font-weight: 700; letter-spacing: -1px; margin-bottom: 16px; }
+  h3 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.5px; margin-bottom: 12px; }
+  .section-sub { color: var(--text-dim); font-size: 1.05rem; margin-bottom: 48px; max-width: 560px; line-height: 1.7; }
 
-  /* === PIPELINE === */
-  .pipeline {
-    display: flex; gap: 8px; flex-wrap: wrap;
-    justify-content: center; margin: 40px 0;
+  /* STATS ROW */
+  .stats-row {
+    display: flex; gap: 48px; justify-content: center; flex-wrap: wrap;
+    margin: 48px 0;
   }
-  .pipeline-step {
-    flex: 1; min-width: 140px; max-width: 180px;
+  .stat-item { text-align: center; }
+  .stat-num {
+    font-size: 3rem; font-weight: 700; letter-spacing: -1px; line-height: 1.1;
+    background: linear-gradient(135deg, var(--green), var(--blue));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .stat-label { font-size: 0.8rem; color: var(--text-dim); margin-top: 4px; }
+
+  /* COMPARISON */
+  .vs-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+    max-width: 720px; margin: 48px auto;
+  }
+  .vs-card {
     background: var(--card); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 20px;
-    text-align: center;
-    transition: all 0.3s;
+    border-radius: var(--radius-lg); padding: 40px 32px;
+    text-align: center; transition: all 0.3s;
   }
-  .pipeline-step:hover {
-    border-color: var(--accent); background: var(--card-hover);
-    transform: translateY(-2px);
-  }
-  .pipeline-step-icon {
-    width: 40px; height: 40px; border-radius: 50%;
+  .vs-card:hover { border-color: rgba(255,255,255,0.2); }
+  .vs-card h4 { font-size: 0.85rem; color: var(--text-dim); margin-bottom: 12px; font-weight: 500; }
+  .vs-card .big { font-size: 4rem; font-weight: 700; line-height: 1; letter-spacing: -2px; }
+  .vs-arrow {
     display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 12px; font-size: 1.1rem; font-weight: 700;
+    font-size: 2rem; color: var(--text-dim);
   }
-  .pipeline-step-name { font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; }
-  .pipeline-step-desc { font-size: 0.75rem; color: var(--text-dim); line-height: 1.4; }
+  @media (max-width: 640px) { .vs-grid { grid-template-columns: 1fr; } .vs-arrow { display: none; } }
 
-  /* === CARDS === */
+  /* PIPELINE */
+  .pipeline { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin: 48px 0; }
+  .pipe-step {
+    flex: 1; min-width: 130px; max-width: 160px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px 16px;
+    text-align: center; transition: all 0.3s;
+  }
+  .pipe-step:hover { border-color: var(--accent); transform: translateY(-3px); }
+  .pipe-num {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 12px; font-weight: 700; font-size: 0.9rem;
+  }
+  .pipe-name { font-size: 0.82rem; font-weight: 600; margin-bottom: 6px; }
+  .pipe-desc { font-size: 0.72rem; color: var(--text-dim); line-height: 1.4; }
+
+  /* CARDS */
   .card-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
+    gap: 20px; margin: 48px 0;
   }
   .card {
     background: var(--card); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 24px;
+    border-radius: var(--radius); padding: 28px 24px;
     transition: all 0.3s;
   }
-  .card:hover { border-color: var(--accent-glow); background: var(--card-hover); transform: translateY(-2px); }
-  .card-icon { font-size: 2rem; margin-bottom: 12px; }
-  .card h3 { font-size: 1rem; margin-bottom: 8px; }
+  .card:hover { border-color: rgba(108,92,231,0.3); background: #202020; }
+  .card-icon { font-size: 2rem; margin-bottom: 14px; }
+  .card h3 { font-size: 1.05rem; margin-bottom: 8px; }
   .card p { font-size: 0.85rem; color: var(--text-dim); line-height: 1.6; }
-  .card-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
-  .card-tag {
-    padding: 2px 8px; border-radius: 4px;
-    font-size: 0.7rem; font-weight: 600;
-    background: var(--surface); color: var(--text-dim);
-  }
 
-  /* === FRAMEWORK TABLE === */
-  .framework-table {
-    width: 100%; border-collapse: collapse;
-    font-size: 0.85rem; margin: 24px 0;
-  }
-  .framework-table th {
-    background: var(--surface); padding: 12px 16px;
-    text-align: left; font-weight: 700; font-size: 0.8rem;
-    text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim);
+  /* RESULT TABLE */
+  .result-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 32px 0; }
+  .result-table th {
+    background: var(--surface); padding: 14px 16px;
+    text-align: left; font-weight: 600; font-size: 0.75rem;
+    text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim);
     border-bottom: 1px solid var(--border);
   }
-  .framework-table td {
-    padding: 14px 16px; border-bottom: 1px solid var(--border);
-    vertical-align: top;
-  }
-  .framework-table tr:hover td { background: var(--card-hover); }
-  .framework-source {
-    display: inline-block; padding: 2px 8px; border-radius: 4px;
-    font-size: 0.7rem; font-weight: 600;
-  }
-  .src-journalism { background: #6c5ce722; color: #a29bfe; }
-  .src-academic { background: #00b89422; color: #55efc4; }
-  .src-multi { background: #fdcb6e22; color: #ffeaa7; }
+  .result-table td { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .result-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .tag-pass { color: var(--green); font-weight: 600; font-size: 0.78rem; }
+  .tag-fail { color: var(--red); font-weight: 600; font-size: 0.78rem; }
+  .tag-warn { color: var(--yellow); font-weight: 600; font-size: 0.78rem; }
 
-  /* === CODE BLOCKS === */
-  .code-block {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius-sm); padding: 16px;
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
-    font-size: 0.8rem; line-height: 1.6;
-    overflow-x: auto; margin: 16px 0;
+  /* VIDEO */
+  .video-wrap {
+    width: 100%; max-width: 900px; margin: 0 auto;
+    border-radius: var(--radius-lg); overflow: hidden;
+    border: 1px solid var(--border);
   }
-  .code-block .comment { color: #636e72; }
-  .code-block .keyword { color: var(--accent); }
-  .code-block .string { color: var(--green); }
+  .video-wrap video { width: 100%; display: block; }
 
-  /* === EXAMPLE BOX === */
-  .example-box {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 20px;
-    margin: 16px 0;
-  }
-  .example-box h4 { font-size: 0.9rem; margin-bottom: 8px; }
-  .example-line {
-    padding: 6px 0; font-size: 0.85rem;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .example-tag {
-    display: inline-flex; width: 24px; height: 24px; border-radius: 50%;
-    align-items: center; justify-content: center;
-    font-size: 0.7rem; flex-shrink: 0;
+  /* QUOTE */
+  .quote {
+    text-align: center; padding: 48px 32px;
+    font-size: 1.3rem; color: var(--text-dim);
+    max-width: 640px; margin: 0 auto; line-height: 1.6;
+    font-style: italic;
   }
 
-  /* === DIVIDER === */
-  .divider {
-    height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent);
-    margin: 40px 0;
-  }
-
-  /* === FOOTER === */
+  /* FOOTER */
   .footer {
-    text-align: center; padding: 40px 24px;
+    text-align: center; padding: 40px 32px;
     color: var(--text-dim); font-size: 0.8rem;
     border-top: 1px solid var(--border);
   }
   .footer a { color: var(--accent); text-decoration: none; }
-  .footer a:hover { text-decoration: underline; }
-
-  /* === BADGE ROW === */
-  .badge-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
-  .badge-row img { height: 20px; }
-
-  /* === IMPACT COLORS === */
-  .critical { color: var(--red); }
-  .experience { color: var(--yellow); }
-  .cosmetic { color: var(--text-dim); }
-  .tag-critical { background: #e1705533; color: #e17055; }
-  .tag-experience { background: #fdcb6e33; color: #fdcb6e; }
-  .tag-cosmetic { background: #636e7233; color: #636e72; }
-
-  /* === ERROR SAMPLE === */
-  .error-list { list-style: none; padding: 0; }
-  .error-list li {
-    padding: 10px 0; border-bottom: 1px solid var(--border);
-    font-size: 0.85rem;
-  }
-  .error-list li:last-child { border-bottom: none; }
-  .error-wrong { text-decoration: line-through; color: var(--red); }
-  .error-correct { color: var(--green); }
-
-  /* === HAMBURGER === */
-  .hamburger { display: none; flex-direction: column; gap: 4px; cursor: pointer; padding: 4px; }
-  .hamburger span { width: 20px; height: 2px; background: var(--text); border-radius: 2px; transition: 0.3s; }
-  @media (max-width: 640px) {
-    .nav-links { display: none; }
-    .hamburger { display: flex; }
-    .nav-links.open { display: flex; flex-direction: column; position: absolute; top: 56px; left: 0; right: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(20px); padding: 16px 24px; border-bottom: 1px solid var(--border); }
-  }
 </style>
 </head>
 <body>
 
 <nav class="nav">
   <span class="nav-brand">Double-Check</span>
-  <ul class="nav-links" id="navLinks">
+  <ul class="nav-links">
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#results">Results</a></li>
     <li><a href="#pipeline">Pipeline</a></li>
-    <li><a href="#frameworks">Frameworks</a></li>
-    <li><a href="#examples">Examples</a></li>
-    <li><a href="#tradeoffs">Trade-offs</a></li>
-    <li><a href="#pitfalls">Pitfalls</a></li>
+    <li><a href="#usage">Usage</a></li>
     <li><a href="#demo">Demo</a></li>
-    <li><a href="#logic">Logic</a></li>
-    <li><a href="#nova">NOVA</a></li>
-  </ul>
-  <div class="hamburger" onclick="document.getElementById('navLinks').classList.toggle('open')">
-    <span></span><span></span><span></span>
-  </div>
+    </ul>
 </nav>
 
 <!-- HERO -->
 <section class="hero" id="top">
+  <div class="hero-badge">v2.0 · For AI agents that need to be right</div>
+  <h1>Double-Check</h1>
+  <p class="hero-tagline">
+    A 5-phase verification engine that <strong>catches what LLMs miss</strong> — prices they invent, specs they confuse, stats they fabricate. No trust required.
+  </p>
+  <div class="btn-group">
+    <a class="btn btn-primary" href="https://github.com/onezion12344/fact-check-agent">View on GitHub →</a>
+    <a class="btn btn-outline" href="#how">See how it works</a>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
   <div class="reveal">
-    <div class="hero-badge">v2.0.0 · Fact + Logic + Theory</div>
-    <div class="hero-badge" style="border-color:#00b894;background:rgba(0,184,148,0.15);color:#00b894;margin-top:4px;">NOVA 2026 · Social Impact Track</div>
-    <h1>Double-Check</h1>
-    <p>A unified verification framework that checks facts, logic, and theory consistency for AI-generated content. Pre-answer verification plus post-answer deep audit — now with logical fallacy detection.</p>
-    <div class="badge-row">
-      <img src="https://img.shields.io/badge/version-1.1.0-6c5ce7?style=flat-square" alt="Version">
-      <img src="https://img.shields.io/badge/academic_papers-12-00b894?style=flat-square" alt="12 papers">
-      <img src="https://img.shields.io/badge/journalism_standards-10-74b9ff?style=flat-square" alt="10 standards">
-      <img src="https://img.shields.io/badge/multi_agent_systems-9-e17055?style=flat-square" alt="9 systems">
+    <div class="section-tag">How it works</div>
+    <h2>LLMs hallucinate. We catch it.</h2>
+    <p class="section-sub">Every AI agent generates content at scale. Even a 5% error rate produces thousands of wrong facts daily. Double-Check sits between the model and the user, verifying every claim before it reaches anyone.</p>
+  </div>
+
+  <div class="card-grid stagger reveal">
+    <div class="card">
+      <div class="card-icon">⚡</div>
+      <h3>Pre-answer verification</h3>
+      <p>Before the model responds, extract claims from the question. Time-sensitive items (prices, hours) force external search. Inline tagging: ✅ confirmed, 🔧 corrected, ⚡ disputed.</p>
     </div>
-    <div class="btn-group">
-      <a class="btn btn-primary" href="https://github.com/onezion12344/fact-check-agent">View on GitHub →</a>
-      <a class="btn btn-outline" href="#pipeline">Explore Pipeline</a>
+    <div class="card">
+      <div class="card-icon">📋</div>
+      <h3>Source attribution</h3>
+      <p>Every claim traced to its origin. What came from source vs what the model guessed. The ⚠️ list is the verification target — not a flaw, a feature.</p>
     </div>
-    <div class="hero-stats">
-      <div class="hero-stat"><div class="hero-stat-num">31</div><div class="hero-stat-label">Academic + News Frameworks</div></div>
-      <div class="hero-stat"><div class="hero-stat-num">5</div><div class="hero-stat-label">Verification Phases</div></div>
-      <div class="hero-stat"><div class="hero-stat-num">7.6×</div><div class="hero-stat-label">LLM Cost Reduction (FIRE)</div></div>
-      <div class="hero-stat"><div class="hero-stat-num">16.5×</div><div class="hero-stat-label">Search Cost Reduction (FIRE)</div></div>
+    <div class="card">
+      <div class="card-icon">🔬</div>
+      <h3>Cross-verification</h3>
+      <p>Independent verification questions, not re-reading the model's output. Search until evidence converges. ≥2 independent sources per claim.</p>
     </div>
+    <div class="card">
+      <div class="card-icon">🎯</div>
+      <h3>Impact analysis</h3>
+      <p>Not all errors matter. 🔴 Critical (breaks workflow), 🟡 Experience (nice to fix), 🟢 Cosmetic. Only fix what actually impacts the user.</p>
+    </div>
+  </div>
+</section>
+
+<!-- RESULTS -->
+<section id="results">
+  <div class="reveal">
+    <div class="section-tag">Benchmark results</div>
+    <h2>From 62.5% to 97.5% accuracy</h2>
+    <p class="section-sub">40 questions across prices, specs, stats, and schedules. 3-judge panel: DeepSeek V4 Flash, DeepSeek V4 Pro, verified sources. All methodology documented and reproducible.</p>
+  </div>
+
+  <!-- Big number comparison -->
+  <div class="vs-grid reveal">
+    <div class="vs-card" style="border-color:var(--red);">
+      <h4>Without Double-Check</h4>
+      <div class="big" style="color:var(--red);">62.5%</div>
+      <p style="color:var(--text-dim);font-size:0.8rem;margin-top:8px;">DeepSeek V4 Flash — raw</p>
+    </div>
+    <div class="vs-arrow">→</div>
+    <div class="vs-card" style="border-color:var(--green);border-width:2px;">
+      <h4>With Double-Check</h4>
+      <div class="big" style="color:var(--green);">97.5%</div>
+      <p style="color:var(--text-dim);font-size:0.8rem;margin-top:8px;">15/15 errors caught. 0 false positives.</p>
+    </div>
+  </div>
+
+  <!-- Category breakdown -->
+  <div class="stats-row reveal">
+    <div class="stat-item">
+      <div class="stat-num">50%→100%</div>
+      <div class="stat-label">Prices accuracy</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">80%→100%</div>
+      <div class="stat-label">Specs accuracy</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">50%→100%</div>
+      <div class="stat-label">Stats accuracy</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">+35pp</div>
+      <div class="stat-label">Overall improvement</div>
+    </div>
+  </div>
+
+  <div class="reveal" style="overflow-x:auto;">
+    <table class="result-table">
+      <thead><tr><th>Question</th><th>Type</th><th>V4 Flash</th><th>V4 Pro</th><th>Truth</th><th>Caught</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Nillkin Cube Pocket price</td><td>Price</td><td class="tag-fail">¥200</td><td class="tag-fail">¥200</td><td>$69.99</td><td class="tag-pass">✅</td>
+        </tr>
+        <tr>
+          <td>OPPO Find N3 GPU</td><td>Specs</td><td class="tag-fail">Adreno 730</td><td class="tag-fail">Adreno 730</td><td>Adreno 740</td><td class="tag-pass">✅</td>
+        </tr>
+        <tr>
+          <td>BOW HB199 touchpad</td><td>Feature</td><td class="tag-fail">Yes</td><td class="tag-fail">Yes</td><td>No</td><td class="tag-pass">✅</td>
+        </tr>
+        <tr>
+          <td>Octopus protein/100g</td><td>Stats</td><td class="tag-fail">15g</td><td class="tag-fail">15g</td><td>29.8g</td><td class="tag-pass">✅</td>
+        </tr>
+        <tr>
+          <td>Palestine recognition</td><td>Data</td><td class="tag-fail">138</td><td class="tag-fail">146</td><td>157</td><td class="tag-warn">⚡</td>
+        </tr>
+        <tr>
+          <td>Correos Sunday hours</td><td>Schedule</td><td class="tag-fail">Closed</td><td class="tag-fail">Closed</td><td>Open 7d</td><td class="tag-pass">✅</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="reveal" style="text-align:center;">
+    <a class="btn btn-outline" href="https://github.com/onezion12344/nova-competition/blob/main/submissions/benchmark-report-v4-3judge.md">Full 40-question benchmark →</a>
   </div>
 </section>
 
 <!-- PIPELINE -->
 <section id="pipeline">
   <div class="reveal">
-    <div class="section-tag">Verification Pipeline</div>
-    <h2>Five Phases, One Goal</h2>
-    <p class="section-sub">Each phase has a single responsibility. Information flows down, never back up. Every round uses a different methodology — no overlap, no confusion.</p>
+    <div class="section-tag">The Pipeline</div>
+    <h2>5 phases. One responsibility each.</h2>
+    <p class="section-sub">Information flows down, never back up. No phase searches and judges at the same time. No phase tries to do everything. Each round is auditable.</p>
   </div>
 
   <div class="pipeline reveal">
-    <div class="pipeline-step">
-      <div class="pipeline-step-icon" style="background:#636e7233;color:#636e72;">0</div>
-      <div class="pipeline-step-name">Dedup Gate</div>
-      <div class="pipeline-step-desc">Emergency skip + content dedup check</div>
+    <div class="pipe-step">
+      <div class="pipe-num" style="background:rgba(255,255,255,0.1);color:var(--text-dim);">0</div>
+      <div class="pipe-name">Dedup Gate</div>
+      <div class="pipe-desc">Emergency skip & duplicated content check</div>
     </div>
-    <div class="pipeline-step">
-      <div class="pipeline-step-icon" style="background:#74b9ff33;color:#74b9ff;">0.5</div>
-      <div class="pipeline-step-name">Pre-answer</div>
-      <div class="pipeline-step-desc">Verify user's facts before answering</div>
+    <div class="pipe-step" style="border-color:rgba(68,138,255,0.3);">
+      <div class="pipe-num" style="background:rgba(68,138,255,0.15);color:var(--blue);">0.5</div>
+      <div class="pipe-name" style="color:var(--blue);">Pre-answer</div>
+      <div class="pipe-desc">Extract claims from question. Time-sensitive = force search.</div>
     </div>
-    <div class="pipeline-step" style="border-color:#6c5ce7;">
-      <div class="pipeline-step-icon" style="background:#6c5ce733;color:#6c5ce7;">1</div>
-      <div class="pipeline-step-name" style="color:var(--accent);">SIFT</div>
-      <div class="pipeline-step-desc">Source audit — what's from source vs what I guessed</div>
+    <div class="pipe-step" style="border-color:rgba(108,92,231,0.3);">
+      <div class="pipe-num" style="background:var(--accent-glow);color:var(--accent);">1</div>
+      <div class="pipe-name" style="color:var(--accent);">SIFT Audit</div>
+      <div class="pipe-desc">Source attribution. ✅ from source · ⚠️ guessed · ❌ contradiction</div>
     </div>
-    <div class="pipeline-step">
-      <div class="pipeline-step-icon" style="background:#00b89433;color:#00b894;">2</div>
-      <div class="pipeline-step-name" style="color:var(--green);">CoVe+FIRE</div>
-      <div class="pipeline-step-desc">External cross-verification, ≥2 independent sources</div>
+    <div class="pipe-step" style="border-color:rgba(0,200,83,0.3);">
+      <div class="pipe-num" style="background:rgba(0,200,83,0.15);color:var(--green);">2</div>
+      <div class="pipe-name" style="color:var(--green);">CoVe + FIRE</div>
+      <div class="pipe-desc">Independent verification. ≥2 sources per claim.</div>
     </div>
-    <div class="pipeline-step">
-      <div class="pipeline-step-icon" style="background:#fdcb6e33;color:#fdcb6e;">3</div>
-      <div class="pipeline-step-name" style="color:var(--yellow);">FABLE</div>
-      <div class="pipeline-step-desc">Impact analysis — what actually matters to the user</div>
+    <div class="pipe-step" style="border-color:rgba(255,214,0,0.3);">
+      <div class="pipe-num" style="background:rgba(255,214,0,0.15);color:var(--yellow);">3</div>
+      <div class="pipe-name" style="color:var(--yellow);">FABLE Impact</div>
+      <div class="pipe-desc">🔴 Critical · 🟡 Experience · 🟢 Cosmetic</div>
     </div>
-    <div class="pipeline-step">
-      <div class="pipeline-step-icon" style="background:#e1705533;color:#e17055;">4</div>
-      <div class="pipeline-step-name" style="color:var(--red);">Truth Sandwich</div>
-      <div class="pipeline-step-desc">Structured correction delivery to the user</div>
+    <div class="pipe-step">
+      <div class="pipe-num" style="background:rgba(255,82,82,0.15);color:var(--red);">4</div>
+      <div class="pipe-name" style="color:var(--red);">Truth Sandwich</div>
+      <div class="pipe-desc">What was said → What's wrong → What's correct → Source</div>
     </div>
   </div>
 
-  <!-- Phase details -->
+  <div class="quote reveal">
+    "The pipeline doesn't just catch errors — it exposes when no model, including itself, knows the right answer.<br>That's the honest approach."
+  </div>
+</section>
+
+<!-- USAGE -->
+<section id="usage">
   <div class="reveal">
-    <h3 style="margin:32px 0 16px">Phase 0.5 — Pre-answer Verification <span style="font-size:0.7rem;color:var(--green);">NEW in v1.1.0</span></h3>
-    <div class="card-grid">
-      <div class="card">
-        <div class="card-icon">🔍</div>
-        <h3>Extract Claims</h3>
-        <p>Scan user question for prices, times, addresses, names, and numerical values.</p>
-        <div class="card-tags"><span class="card-tag">Prices</span><span class="card-tag">Times</span><span class="card-tag">Addresses</span></div>
-      </div>
-      <div class="card">
-        <div class="card-icon">⚡</div>
-        <h3>Priority Groups</h3>
-        <p>Time-sensitive items (prices, hours, schedules, addresses) force external search. General facts use internal knowledge first.</p>
-        <div class="card-tags"><span class="card-tag" style="background:#e1705533;color:#e17055;">Must search</span><span class="card-tag" style="background:#636e7233;">Optional search</span></div>
-      </div>
-      <div class="card">
-        <div class="card-icon">✅</div>
-        <h3>Inline Verification</h3>
-        <p>Answers tagged inline: ✅ confirmed, 🔧 corrected, ⚡ disputed, ❌ unverifiable. Sources shown.</p>
-      </div>
+    <div class="section-tag">Get started</div>
+    <h2>Drop it in. It just works.</h2>
+    <p class="section-sub">Double-Check runs as a native Hermes skill + plugin. Two modes: always-on (every turn) and deep audit (full 4-round). Also works with any LLM framework via system prompt.</p>
+  </div>
+
+  <div class="card-grid reveal">
+    <div class="card">
+      <div class="card-icon">⚡</div>
+      <h3>Hermes Agent (1 minute)</h3>
+      <p style="font-size:0.85rem;font-family:monospace;line-height:2;color:var(--text-dim);">
+        cp -r skill/ ~/.hermes/skills/double-check/<br>
+        cp -r plugin/ ~/.hermes/plugins/double-check/<br>
+        hermes skill enable double-check<br>
+        hermes plugin enable double-check
+      </p>
+      <p style="font-size:0.8rem;color:var(--dim);margin-top:8px;">Plugin hooks into every turn. Skill triggers deep audit on dense responses (≥5 claims).</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔌</div>
+      <h3>Any LLM framework</h3>
+      <p style="font-size:0.85rem;color:var(--dim);">
+        Copy the skill's system prompt into your agent configuration. Add the plugin functions as tool definitions. Works with Claude Code, Cursor, OpenClaw, Codex, and any OpenAI-compatible framework.
+      </p>
+      <p style="font-size:0.8rem;color:var(--text-dim);margin-top:8px;">
+        <a href="https://github.com/onezion12344/fact-check-agent" style="color:var(--accent);">Full setup docs →</a>
+      </p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🤖</div>
+      <h3>Two modes</h3>
+      <p style="font-size:0.85rem;color:var(--dim);line-height:1.8;">
+        <strong style="color:var(--text);">Always-on</strong> — Phase 0.5 runs before every agent response. Time-sensitive claims force external search. Inline tagging (✅/🔧/⚡/❌).<br><br>
+        <strong style="color:var(--text);">Deep audit</strong> — Load the skill (`/skill double-check`), say "fact-check this", and get full 4-round verification with Truth Sandwich output.
+      </p>
     </div>
   </div>
 
   <div class="reveal" style="margin-top:32px;">
-    <h3 style="margin:0 0 16px">Round 1-4 — Post-answer Deep Audit</h3>
-    <div class="card-grid">
-      <div class="card">
-        <div class="card-icon">📋</div>
-        <h3>Round 1: SIFT</h3>
-        <p>Stop. Source everything. ✅ from source, ⚠️ my guesses, ❌ contradictions. No external search.</p>
-        <div class="card-tags"><span class="card-tag" style="background:#6c5ce733;color:#6c5ce7;">SIFT</span><span class="card-tag">Source audit</span></div>
-      </div>
-      <div class="card">
-        <div class="card-icon">🔬</div>
-        <h3>Round 2: CoVe + FIRE</h3>
-        <p>Chain-of-Verification: answer questions independently. FIRE: search until evidence converges. ≥2 independent sources per claim.</p>
-        <div class="card-tags"><span class="card-tag" style="background:#00b89433;color:#00b894;">CoVe</span><span class="card-tag" style="background:#00b89433;color:#00b894;">FIRE</span></div>
-      </div>
-      <div class="card">
-        <div class="card-icon">🎯</div>
-        <h3>Round 3: FABLE</h3>
-        <p>Impact analysis: Functional? Actionable? Blocking? Likelihood? Effort? 🔴 Critical / 🟡 Experience / 🟢 Cosmetic.</p>
-        <div class="card-tags"><span class="card-tag" style="background:#fdcb6e33;color:#fdcb6e;">FABLE</span></div>
-      </div>
-      <div class="card">
-        <div class="card-icon">💬</div>
-        <h3>Round 4: Truth Sandwich</h3>
-        <p>Structured correction: what was written → what's wrong → what's correct → source → action needed?</p>
-        <div class="card-tags"><span class="card-tag" style="background:#e1705533;color:#e17055;">Truth Sandwich</span></div>
-      </div>
+    <h3 style="margin-bottom:24px;">What you'll see</h3>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px 28px;font-size:0.85rem;line-height:2;">
+      <div>Nillkin Cube Pocket costs <strong>$79.99</strong> ✅ <span style="color:var(--dim);font-size:0.75rem;">(nillkin.com, confirmed 2026.06)</span></div>
+      <div>OPPO Find N3 uses <strong>Adreno 740</strong> 🔧 <span style="color:var(--red);font-size:0.75rem;">(you said 730 — corrected from GSMArena)</span></div>
+      <div>Samsung 990 Pro 1TB ⚡ <span style="color:var(--yellow);font-size:0.75rem;">($129-$320, varies by retailer — NAND shortage)</span></div>
+      <div>54% trust AI ❌ <span style="color:var(--red);font-size:0.75rem;">(no single global number exists — Stanford: 47%, Pew: no majority)</span></div>
+    </div>
+    <p style="font-size:0.8rem;color:var(--text-dim);margin-top:12px;text-align:center;">Every quantity tagged. Every correction sourced. Every ambiguity flagged.</p>
+  </div>
+
+  <div class="reveal" style="text-align:center;margin-top:40px;">
+    <div class="btn-group">
+      <a class="btn btn-primary" href="https://github.com/onezion12344/fact-check-agent">Install from GitHub →</a>
+      <a class="btn btn-outline" href="https://github.com/onezion12344/fact-check-agent/blob/main/README.md">Read the docs →</a>
     </div>
   </div>
 </section>
 
-<div class="divider"></div>
-
-<!-- FRAMEWORKS -->
-<section id="frameworks">
-  <div class="reveal">
-    <div class="section-tag">Academic &amp; Professional Sources</div>
-    <h2>31 Frameworks, 3 Traditions</h2>
-    <p class="section-sub">This skill merges journalism practice, LLM academic research, and multi-agent verification systems. Each round borrows from the best tool for its job.</p>
-  </div>
-
-  <h3 class="reveal" style="margin-bottom:16px;">📰 Journalism</h3>
-  <div class="reveal" style="overflow-x:auto;">
-    <table class="framework-table">
-      <thead><tr><th>Framework</th><th>Core Mechanism</th><th>Used In</th><th>Source</th></tr></thead>
-      <tbody>
-        <tr>
-          <td><strong>SIFT</strong></td>
-          <td>Stop → Investigate Source → Find Better Coverage → Trace</td>
-          <td><span class="framework-source src-journalism">Round 1</span></td>
-          <td>Mike Caulfield, 2019</td>
-        </tr>
-        <tr>
-          <td><strong>Truth Sandwich</strong></td>
-          <td>What was claimed → What's wrong → What's correct → Source</td>
-          <td><span class="framework-source src-journalism">Round 4</span></td>
-          <td>Journalist's field guide</td>
-        </tr>
-        <tr>
-          <td><strong>IFCN 5 Principles</strong></td>
-          <td>31 criteria for nonpartisan transparency, ≥2 independent sources</td>
-          <td><span class="framework-source src-journalism">Round 2</span></td>
-          <td>Poynter Institute</td>
-        </tr>
-        <tr>
-          <td><strong>IMVAIN</strong></td>
-          <td>Independent / Multiple / Verifies / Authoritative / Named</td>
-          <td><span class="framework-source src-journalism">Round 1</span></td>
-          <td>Stony Brook Journalism</td>
-        </tr>
-        <tr>
-          <td><strong>PolitiFact 7-Step</strong></td>
-          <td>Reporter + 3 editors, Truth-O-Meter rating</td>
-          <td>—</td>
-          <td>PolitiFact</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <h3 class="reveal" style="margin:32px 0 16px;">🧠 LLM Academic</h3>
-  <div class="reveal" style="overflow-x:auto;">
-    <table class="framework-table">
-      <thead><tr><th>Framework</th><th>Core Mechanism</th><th>Used In</th><th>Source</th></tr></thead>
-      <tbody>
-        <tr>
-          <td><strong>CoVe</strong></td>
-          <td>Draft → Plan verification questions → Answer independently → Revise</td>
-          <td><span class="framework-source src-academic">Round 2</span></td>
-          <td>Meta, 2023</td>
-        </tr>
-        <tr>
-          <td><strong>FIRE</strong></td>
-          <td>Atomic claims → Iterative retrieval → Verify → Refine</td>
-          <td><span class="framework-source src-academic">Round 2</span></td>
-          <td>ACL Findings 2025</td>
-        </tr>
-        <tr>
-          <td><strong>VeriFact-CoT</strong></td>
-          <td>CoT → Extract claims → Simulate retrieval → Correct + cite</td>
-          <td><span class="framework-source src-academic">Round 4</span></td>
-          <td>2025, hallucination 25%→12%</td>
-        </tr>
-        <tr>
-          <td><strong>Fact-Audit</strong></td>
-          <td>Prototype simulation → Verify + reason → Adaptive update</td>
-          <td>—</td>
-          <td>2025, 13 LLMs tested</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <h3 class="reveal" style="margin:32px 0 16px;">🤖 Multi-Agent</h3>
-  <div class="reveal" style="overflow-x:auto;">
-    <table class="framework-table">
-      <thead><tr><th>Framework</th><th>Mechanism</th><th>Source</th></tr></thead>
-      <tbody>
-        <tr><td><strong>VeriChain</strong></td><td>Decompose + Verifier Agent + dynamic loop</td><td>OpenReview 2026</td></tr>
-        <tr><td><strong>TRUST Agents</strong></td><td>Extract → Retrieve → Verify → Explain (4-agent pipeline)</td><td>arXiv 2026</td></tr>
-        <tr><td><strong>GKMAD</strong></td><td>Guided debate → External knowledge → Judgment</td><td>Expert Systems 2026</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="reveal" style="margin-top:24px;">
-    <div class="example-box">
-      <h4>🎯 Key Academic Insights Applied</h4>
-      <div class="example-line">• <strong>CoVe's "independent answering"</strong> — don't re-read your own text before verifying</div>
-      <div class="example-line">• <strong>FIRE's iterative retrieval</strong> — search → insufficient → search again until convergence</div>
-      <div class="example-line">• <strong>IFCN's ≥2 source standard</strong> — every ⚠️ claim needs at least 2 unrelated sources</div>
-      <div class="example-line">• <strong>Time-sensitive forced external verification</strong> — hours, prices, schedules change; even "yesterday's source" can be wrong</div>
-      <div class="example-line">• <strong>Multi-agent anti-pattern</strong> — domain-split agents (housing/route/food) waste overlap. Correct: structural rounds (source audit → verification → impact)</div>
-    </div>
-  </div>
-</section>
-
-<div class="divider"></div>
-
-<!-- EXAMPLES -->
-<section id="examples">
-  <div class="reveal">
-    <div class="section-tag">Real-World Results</div>
-    <h2>Two Case Studies</h2>
-    <p class="section-sub">Both from actual production use with real consequences.</p>
-  </div>
-
-  <div class="reveal">
-    <div class="card" style="padding:28px;margin-bottom:20px;">
-      <h3 style="font-size:1.1rem;margin-bottom:12px;">🚶 Camino de Santiago Planning</h3>
-      <div class="example-line">• <strong>Round 1</strong>: 23 ⚠️ (guessed addresses/prices), 55 ✅ (source km/church names)</div>
-      <div class="example-line">• <strong>Round 2</strong>: Found 4 wrong addresses + 6 wrong prices/times</div>
-      <div class="example-line">• <strong>Round 3</strong>: 1 🔴 (Correos Sunday closure breaking Madrid plans), 6 🟡, 3 🟢</div>
-      <div class="example-line">• <strong>Round 4</strong>: Truth Sandwich fixes + alternative routes</div>
-      <div class="divider" style="margin:12px 0;"></div>
-      <div class="example-line" style="font-size:0.8rem;color:var(--red);">⛔ Lesson: Hotels guessed — all wrong. Church names from source — all right. ⚠️ tags are the soul of SIFT.</div>
-    </div>
-  </div>
-
-  <div class="reveal">
-    <div class="card" style="padding:28px;">
-      <h3 style="font-size:1.1rem;margin-bottom:12px;">📱 AI Foldable Phone Research</h3>
-      <div class="example-line">
-        <span style="display:inline-flex;align-items:center;gap:8px;">
-          <span>Error rate:</span>
-          <span style="font-weight:700;color:var(--red);">9%</span>
-          <span style="color:var(--text-dim);">→</span>
-          <span style="font-weight:700;color:var(--yellow);">3%</span>
-          <span style="color:var(--text-dim);">→</span>
-          <span style="font-weight:700;color:var(--green);">0%</span>
-        </span>
-      </div>
-      <div style="margin:12px 0;">
-        <div style="display:flex;align-items:center;gap:4px;height:24px;">
-          <div style="height:100%;width:40%;background:linear-gradient(90deg,var(--red),var(--yellow));border-radius:4px;opacity:0.8;"></div>
-          <div style="height:70%;width:30%;background:linear-gradient(90deg,var(--yellow),var(--green));border-radius:4px;opacity:0.8;"></div>
-          <div style="height:40%;width:30%;background:var(--green);border-radius:4px;opacity:0.8;"></div>
-        </div>
-      </div>
-      <div class="example-line" style="font-size:0.85rem;">Round 1: 44 claims — 37 ✅ / 3 ⚠️ / 4 ❌ (all prices 2-2.6× too low)</div>
-      <div class="example-line" style="font-size:0.85rem;">Nillkin keyboard: originally ¥200 → actually ¥500 ↗</div>
-      <div class="example-line" style="font-size:0.85rem;">Poetic case: originally $23 → actually $59 ↗</div>
-      <div class="example-line" style="font-size:0.85rem;">BOW HB199: claimed touchpad — actually no touchpad ✗</div>
-      <div class="divider" style="margin:12px 0;"></div>
-      <div class="example-line" style="font-size:0.8rem;color:var(--text-dim);">💰 Price Lesson: 1688 wholesale ≠ retail. Always check ≥3 platforms. Secondhand/jump prices cannot be automated — mark as "estimate".</div>
-    </div>
-  </div>
-</section>
-
-<div class="divider"></div>
-
-<!-- TRADEOFFS -->
-<section id="tradeoffs">
-  <div class="reveal">
-    <div class="section-tag">Research-Backed Analysis</div>
-    <h2>Journalism vs Academia: Trade-offs</h2>
-    <p class="section-sub">Researched against actual papers (June 2026). Each tradition has blind spots the other covers.</p>
-  </div>
-
-  <div class="reveal" style="overflow-x:auto;">
-    <table class="framework-table">
-      <thead>
-        <tr><th>Dimension</th><th>📰 Journalism</th><th>🧠 LLM Academic</th></tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><strong>Core Insight</strong></td>
-          <td>Lateral reading > close reading</td>
-          <td>Independent answering > self-Q&A</td>
-        </tr>
-        <tr>
-          <td><strong>Adversarial Adapt.</strong></td>
-          <td style="color:var(--red);">❌ Public frameworks can be targeted</td>
-          <td style="color:var(--green);">✅ Doesn't rely on single method</td>
-        </tr>
-        <tr>
-          <td><strong>Motivated Reasoning</strong></td>
-          <td>⚠️ Aware but can't solve</td>
-          <td style="color:var(--red);">❌ Not studied at all</td>
-        </tr>
-        <tr>
-          <td><strong>Automation</strong></td>
-          <td style="color:var(--red);">❌ Purely manual</td>
-          <td style="color:var(--green);">✅ Natively agent-compatible</td>
-        </tr>
-        <tr>
-          <td><strong>Empirical Base</strong></td>
-          <td>Classroom/community level</td>
-          <td>Benchmark dataset level</td>
-        </tr>
-        <tr>
-          <td><strong>Cost Model</strong></td>
-          <td>Person-hours</td>
-          <td>API tokens + search requests</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="reveal reveal-scale" style="margin-top:24px;">
-    <div class="example-box" style="border-color:var(--accent);">
-      <h4 style="color:var(--accent);">🧬 Hybrid Design — Best of Both Worlds</h4>
-      <div class="example-line" style="margin-bottom:8px;"><strong>From Journalism:</strong> Round 1 (SIFT — source attribution first), Round 4 (Truth Sandwich — structured correction)</div>
-      <div class="example-line"><strong>From Academia:</strong> Round 2 (CoVe independent verification + FIRE iterative search), parallel multi-agent verification</div>
-      <div class="example-line" style="margin-top:8px;font-size:0.8rem;color:var(--text-dim);">Adversarial adaptation mitigated by ≥2 independent sources. Verification imperfection absorbed by FABLE impact analysis — not every error is worth fixing. Cost bounded by trigger conditions (≥300 chars, ≥5 claims). Motivated reasoning — the ceiling no framework has solved.</div>
-    </div>
-  </div>
-</section>
-
-<div class="divider"></div>
-
-<!-- PITFALLS -->
-<section id="pitfalls">
-  <div class="reveal">
-    <div class="section-tag">Lessons From Production</div>
-    <h2>Hard-Won Pitfalls</h2>
-    <p class="section-sub">Errors that actually happened. Each one taught us a new rule.</p>
-  </div>
-
-  <div class="reveal">
-    <ul class="error-list">
-      <li>
-        <strong class="critical">🐙 Don't Fabricate Nutrition Data</strong><br>
-        <span class="error-wrong">"Octopus has 15g protein"</span> ← I made this up. Actual: <span class="error-correct">29.8g (USDA)</span>.<br>
-        <span style="font-size:0.8rem;color:var(--text-dim);">A "reasonable-sounding" guess is almost always wrong.</span>
-      </li>
-      <li>
-        <strong class="critical">⚠️ Dual-Source Contamination</strong><br>
-        Tour brochure ≠ user's actual booking. UMSL group stayed at VILLAJARDÍN, user booked Pons Minea.<br>
-        <span style="font-size:0.8rem;color:var(--text-dim);">Round 1 must tag *intended* source (user vs document), not just *literal* source.</span>
-      </li>
-      <li>
-        <strong class="experience">💰 1688 Wholesale ≠ Retail Price</strong><br>
-        Same item: 1688 ¥15-30 / Taobao ¥50-80 / Amazon $23-60. Always check ≥3 platforms.<br>
-        <span style="font-size:0.8rem;color:var(--text-dim);">Secondhand/jump prices cannot be automated — mark as "estimate".</span>
-      </li>
-      <li>
-        <strong class="experience">📊 GPU Benchmarks: Don't Mix Sources</strong><br>
-        <span class="error-wrong">GFXBench Car Chase: N2=104fps (onscreen vs offscreen confusion)</span><br>
-        Community scores vary wildly by thermals, firmware, ambient temp. Stick to <span class="error-correct">GSMArena review page 4</span> or Notebookcheck UL Solutions.
-      </li>
-      <li>
-        <strong class="cosmetic">⚡ OPPO Pen Compatibility</strong><br>
-        OPPO Pen uses Goodix GP850 active capacitive protocol — no EMR digitizer layer. Only compatible with Find N2/N3/N5/OnePlus Open (opposhop.cn verified).
-      </li>
-      <li>
-        <strong class="cosmetic">🕐 Published "Yesterday" May Still Be Wrong</strong><br>
-        Time-sensitive items (hours, prices, schedules) always need current verification. Even a source published 24 hours ago can be outdated.
-      </li>
-    </ul>
-  </div>
-</section>
-
-<div class="divider"></div>
-
-<!-- DEMO VIDEO -->
+<!-- DEMO -->
 <section id="demo">
-  <div class="reveal">
-    <div class="section-tag">Demo Walkthrough</div>
-    <h2>See It In Action</h2>
-    <p class="section-sub">A 36-second animated walkthrough covering the problem, our 5-phase pipeline, A/B test results, case studies, and social impact. Click play.</p>
-  </div>
   <div class="reveal" style="text-align:center;">
-    <div style="width:100%;max-width:960px;margin:0 auto;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);">
-      <video controls style="width:100%;display:block;" poster="">
-        <source src="doublecheck.mp4" type="video/mp4">
-        Your browser does not support video.
-      </video>
-    </div>
-    <p style="font-size:0.8rem;color:var(--text-dim);margin-top:8px;">36-second walkthrough. Full narration in the narration script.</p>
-  </div>
-</section>
-
-<div class="divider"></div>
-
-<!-- LOGIC & THEORY CHECK -->
-<section id="logic">
-  <div class="reveal">
-    <div class="section-tag">Logic & Theory Verification</div>
-    <h2>Facts Are True. But Is The Argument Valid?</h2>
-    <p class="section-sub">Facts may be correct but the reasoning connecting them can still be fallacious. Logic-checking catches what fact-checking misses: invalid causal inferences, circular arguments, false dichotomies, and statistical fallacies.</p>
+    <div class="section-tag">Watch it work</div>
+    <h2>From hallucination to verification</h2>
+    <p class="section-sub" style="margin:0 auto 40px;text-align:center;">36-second walkthrough of the complete pipeline: problem, solution, results, impact.</p>
   </div>
 
-  <div class="reveal" style="margin-bottom:24px;">
-    <div class="example-box" style="border-color:var(--accent);">
-      <h4 style="color:var(--accent);">🧬 Example: When Facts Are True But Logic Is Flawed</h4>
-      <div class="example-line">Fact: "CO₂ is a greenhouse gas" → <span class="badge" style="background:#00b89433;color:#00b894;padding:2px 6px;border-radius:4px;">✅ True</span></div>
-      <div class="example-line">Fact: "Global temperatures increased 1.1°C" → <span class="badge" style="background:#00b89433;color:#00b894;padding:2px 6px;border-radius:4px;">✅ True</span></div>
-      <div class="example-line">Claim: "Therefore CO₂ increase after temperature means CO₂ doesn't cause warming" → <span class="badge" style="background:#e1705533;color:#e17055;padding:2px 6px;border-radius:4px;">❌ Post hoc ergo propter hoc</span></div>
-      <div class="example-line" style="font-size:0.8rem;color:var(--text-dim);">Fact-check confirms both facts. Logic-check catches the invalid causal inference.</div>
-    </div>
+  <div class="video-wrap reveal">
+    <video controls style="width:100%;display:block;">
+      <source src="doublecheck.mp4" type="video/mp4">
+    </video>
   </div>
 
-  <div class="reveal" style="overflow-x:auto;">
-    <table class="framework-table">
-      <thead><tr><th>Framework</th><th>Core Mechanism</th><th>Key Data</th><th>Source</th></tr></thead>
-      <tbody>
-        <tr>
-          <td><strong>FLICC</strong></td>
-          <td>Fake experts, Logical fallacies, Impossible expectations, Cherry picking, Conspiracy</td>
-          <td>NLP detection F1 2.5-3.5× better</td>
-          <td><span class="src-academic">Nature Sci Rep 2024</span></td>
-        </tr>
-        <tr>
-          <td><strong>Toulmin Model</strong></td>
-          <td>Claim → Data → Warrant → Qualifier → Rebuttal → Backing</td>
-          <td>Foundation of argumentation theory</td>
-          <td><span class="src-academic">Toulmin 1958</span></td>
-        </tr>
-        <tr>
-          <td><strong>Jeong Prompt Ranking</strong></td>
-          <td>3 contexts (Counterargument/Explanation/Goal) → rank → classify</td>
-          <td>Zero-shot F1 +0.60, 29 fallacy types</td>
-          <td><span class="src-academic">NAACL 2025</span></td>
-        </tr>
-        <tr>
-          <td><strong>FoVer</strong></td>
-          <td>NL → First-order logic → Automated verification</td>
-          <td>Formal logic verification of reasoning</td>
-          <td><span class="src-academic">TACL (MIT) 2025</span></td>
-        </tr>
-        <tr>
-          <td><strong>CLOVER</strong></td>
-          <td>Compositional FOL translation + verification</td>
-          <td>Neuro-symbolic complex reasoning</td>
-          <td><span class="src-academic">arXiv 2024</span></td>
-        </tr>
-        <tr>
-          <td><strong>Hamborg Media Bias</strong></td>
-          <td>Word choice, labeling, framing taxonomy</td>
-          <td>Cross-disciplinary NLP usable</td>
-          <td><span class="src-academic">Springer 2023</span></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="reveal" style="margin-top:24px;">
-    <div class="card-grid">
-      <div class="card" style="border-color:var(--green);">
-        <h3 style="color:var(--green);">✅ Strong</h3>
-        <p>Circular reasoning, appeal to popularity, slogans, thought-terminating clichés</p>
-      </div>
-      <div class="card" style="border-color:var(--yellow);">
-        <h3 style="color:var(--yellow);">🟡 Medium</h3>
-        <p>Straw man, false dichotomy, slippery slope, appeal to emotion, red herring</p>
-      </div>
-      <div class="card" style="border-color:var(--red);">
-        <h3 style="color:var(--red);">❌ Weak</h3>
-        <p>False analogy, statistical fallacies, Simpson's paradox — needs multi-step reasoning</p>
-      </div>
-    </div>
+  <div class="reveal" style="text-align:center;margin-top:24px;">
+    <a class="btn btn-outline" href="https://github.com/onezion12344/fact-check-agent">Full documentation on GitHub →</a>
   </div>
 </section>
 
 <!-- NOVA -->
-<section id="nova" style="text-align:center;">
+<section style="text-align:center;">
   <div class="reveal">
-    <div class="section-tag" style="text-align:center;">NOVA National AI Creativity Competition</div>
+    <div class="section-tag" style="text-align:center;">NOVA 2026 · Social Impact</div>
     <h2>HKUST × Tencent Research Institute</h2>
-    <p class="section-sub" style="margin:0 auto 20px;">
-      Social Impact track — Fighting misinformation in the AI era with a hybrid journalism+LLM verification framework.
-      Tested in production: A/B test shows <strong style="color:var(--green);">0% → 100%</strong> error catch rate improvement.
+    <p style="color:var(--text-dim);max-width:560px;margin:0 auto 32px;font-size:1rem;">
+      Fighting AI-driven misinformation with a production-verified, open-source verification framework.
+      Built for Hermes Agent. Works with any LLM.
     </p>
-    <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:20px;">
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 24px;text-align:center;">
-        <div style="font-size:2rem;font-weight:700;color:var(--accent);">0%</div>
-        <div style="font-size:0.8rem;color:var(--text-dim);">Auto-Verify Only</div>
-      </div>
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 24px;text-align:center;">
-        <div style="font-size:2rem;font-weight:700;color:var(--green);">100%</div>
-        <div style="font-size:0.8rem;color:var(--text-dim);">Full Pipeline</div>
-      </div>
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 24px;text-align:center;">
-        <div style="font-size:2rem;font-weight:700;color:var(--yellow);">2×</div>
-        <div style="font-size:0.8rem;color:var(--text-dim);">Real Case Studies</div>
-      </div>
-    </div>
-    <div class="btn-group" style="justify-content:center;">
-      <a class="btn btn-primary" href="https://github.com/onezion12344/nova-competition">NOVA Repo →</a>
-      <a class="btn btn-outline" href="video.html">Watch Demo Video →</a>
-    </div>
-  </div>
-</section>
-
-<div class="divider"></div>
-
-<!-- FOOTER -->
-<section style="text-align:center;padding:60px 24px;">
-  <div class="reveal">
-    <h2>Built for AI Agents</h2>
-    <p style="color:var(--text-dim);margin-bottom:24px;font-size:0.95rem;">
-      Designed for Hermes Agent by Nous Research. Works with any LLM-powered agent framework.<br>
-      18 academic papers + 10 journalism standards + 5 public datasets = 1 unified verification pipeline.
-    </p>
-    <div class="btn-group" style="justify-content:center;">
-      <a class="btn btn-primary" href="https://github.com/onezion12344/fact-check-agent">GitHub Repo →</a>
-      <a class="btn btn-outline" href="#top">Back to Top</a>
+    <div class="btn-group">
+      <a class="btn btn-primary" href="https://github.com/onezion12344/nova-competition">NOVA Submission →</a>
+      <a class="btn btn-outline" href="https://github.com/onezion12344/fact-check-agent">Source Code →</a>
     </div>
   </div>
 </section>
 
 <div class="footer">
-  <p>Double-Check v2.0.0 · Built for <a href="https://hermes-agent.nousresearch.com">Hermes Agent</a><br>
-  Fact: SIFT · IFCN · IMVAIN · CoVe · FIRE · FABLE · VeriChain · TRUST · GKMAD<br>
-  Logic: FLICC · Toulmin · Prompt Ranking · FoVer · CLOVER · Hamborg</p>
+  <p>Double-Check v2.0 · Open source (MIT) · <a href="https://github.com/onezion12344/fact-check-agent">GitHub</a></p>
+  <p style="margin-top:4px;">Methodology, frameworks, and pitfalls → README</p>
 </div>
 
 <script>
-// Scroll-triggered reveal
 const observer = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) entry.target.classList.add('visible');
-  });
-}, { threshold: 0.15, rootMargin: '0px 0px -50px 0px' });
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
 
 document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale, .stagger').forEach(el => observer.observe(el));
-
-// Nav scroll effect
-document.addEventListener('scroll', () => {
-  const nav = document.querySelector('.nav');
-  nav.style.background = window.scrollY > 50
-    ? 'rgba(10,10,15,0.95)'
-    : 'rgba(10,10,15,0.8)';
-});
 </script>
+
 </body>
 </html>
