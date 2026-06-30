@@ -242,6 +242,7 @@
 <nav class="nav">
   <span class="nav-brand">Double-Check</span>
   <ul class="nav-links">
+    <li><a href="#approach">Approach</a></li>
     <li><a href="#how">How It Works</a></li>
     <li><a href="#results">Results</a></li>
     <li><a href="#pipeline">Pipeline</a></li>
@@ -255,11 +256,79 @@
   <div class="hero-badge">v2.0 · For AI agents that need to be right</div>
   <h1>Double-Check</h1>
   <p class="hero-tagline">
-    A 5-phase verification engine that <strong>catches what LLMs miss</strong> — prices they invent, specs they confuse, stats they fabricate. No trust required.
+    LLMs have bounded rationality. Double-Check doesn't fix the model — it enforces verification outside the model.
   </p>
   <div class="btn-group">
     <a class="btn btn-primary" href="https://github.com/onezion12344/fact-check-agent">View on GitHub →</a>
     <a class="btn btn-outline" href="#how">See how it works</a>
+  </div>
+</section>
+
+<!-- ROUTE A vs B -->
+<section id="approach" style="padding:40px 32px 80px;">
+  <div class="reveal">
+    <div class="section-tag">Two Approaches</div>
+    <h2>Route A vs Route B</h2>
+    <p class="section-sub">There are two fundamentally different ways to solve AI hallucination. Only one works today.</p>
+  </div>
+
+  <div class="vs-grid reveal">
+    <div class="vs-card" style="border-color:rgba(255,82,82,0.3);">
+      <h4 style="color:var(--red);">Route A — Model Internalization</h4>
+      <p style="font-size:0.85rem;color:var(--text-dim);margin:16px 0;line-height:1.6;">
+        Train the model to know when to verify.<br>
+        OpenAI o3/o4 · Claude · DeepSeek · Gemini
+      </p>
+      <ul style="text-align:left;font-size:0.82rem;color:var(--text-dim);line-height:1.8;list-style:none;padding:0;">
+        <li>❌ Expensive — retraining needed per model</li>
+        <li>❌ Model-dependent — only works on latest models</li>
+        <li>❌ Self-deception — model still judges itself</li>
+        <li>❌ Years away from reliability</li>
+      </ul>
+    </div>
+    <div class="vs-arrow">→</div>
+    <div class="vs-card" style="border-color:rgba(0,200,83,0.3);">
+      <h4 style="color:var(--green);">Route B — External Enforcement</h4>
+      <p style="font-size:0.85rem;color:var(--text-dim);margin:16px 0;line-height:1.6;">
+        Don't ask the model to verify. Enforce from outside.<br>
+        <strong style="color:var(--text);">Double-Check</strong>
+      </p>
+      <ul style="text-align:left;font-size:0.82rem;color:var(--text-dim);line-height:1.8;list-style:none;padding:0;">
+        <li>✅ Works with ANY model, TODAY</li>
+        <li>✅ No retraining — plugin hooks</li>
+        <li>✅ Independent verification — model can't cheat</li>
+        <li>✅ MIT open source, production-ready</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ASYNC VISION -->
+<section style="padding:0 32px 80px;">
+  <div class="reveal">
+    <div class="section-tag">Vision</div>
+    <h2>Async Delivery</h2>
+    <p class="section-sub">
+      Send a query → go do other things → come back to verified results.<br>
+      Not "wait for the model." Not "hope it's right." Just verified information, delivered when ready.
+    </p>
+  </div>
+  <div class="card-grid stagger reveal" style="margin-top:40px;">
+    <div class="card">
+      <div class="card-icon">📤</div>
+      <h3>Fire and forget</h3>
+      <p>Send queries naturally. Double-Check processes in the background — no need to watch progress bars.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔔</div>
+      <h3>Notification on completion</h3>
+      <p>Results delivered via Telegram, WhatsApp, or WeChat. Verified facts, correction summaries, source links included.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔄</div>
+      <h3>Iterative refinement</h3>
+      <p>Follow-up queries automatically incorporate prior corrections. Each round gets more precise.</p>
+    </div>
   </div>
 </section>
 
@@ -479,34 +548,16 @@
   <div class="reveal" style="text-align:center;">
     <div class="section-tag">Watch it work</div>
     <h2>From hallucination to verification</h2>
-    <p class="section-sub" style="margin:0 auto 40px;text-align:center;">36-second walkthrough of the complete pipeline: problem, solution, results, impact. Narrated by MiMo TTS.</p>
+    <p class="section-sub" style="margin:0 auto 40px;text-align:center;">36-second walkthrough of the complete pipeline: problem, solution, results, impact.</p>
   </div>
 
   <div class="video-wrap reveal">
-    <video controls style="width:100%;display:block;" poster="">
+    <video controls style="width:100%;display:block;">
       <source src="doublecheck.mp4" type="video/mp4">
     </video>
   </div>
 
-  <div class="reveal" style="text-align:center;margin-top:40px;">
-    <div class="section-tag" style="text-align:center;">Also available</div>
-  </div>
-  <div class="reveal" style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;">
-    <div class="card" style="max-width:320px;text-align:center;">
-      <h4>🎬 15s Teaser</h4>
-      <video controls style="width:100%;border-radius:8px;margin-top:12px;">
-        <source src="ad-15s.mp4" type="video/mp4">
-      </video>
-    </div>
-    <div class="card" style="max-width:320px;text-align:center;">
-      <h4>📺 30s Product Demo</h4>
-      <video controls style="width:100%;border-radius:8px;margin-top:12px;">
-        <source src="ad-30s.mp4" type="video/mp4">
-      </video>
-    </div>
-  </div>
-
-  <div class="reveal" style="text-align:center;margin-top:32px;">
+  <div class="reveal" style="text-align:center;margin-top:24px;">
     <a class="btn btn-outline" href="https://github.com/onezion12344/fact-check-agent">Full documentation on GitHub →</a>
   </div>
 </section>

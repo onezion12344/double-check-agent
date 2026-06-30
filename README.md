@@ -11,6 +11,24 @@ A 5-phase verification pipeline that catches what LLMs miss. Merges 12 academic 
 
 ---
 
+## Why "Double-Check"?
+
+There are two approaches to AI verification:
+
+**Route A — Model Internalization** (OpenAI o3/o4, Claude, DeepSeek):
+Train the model to know when to verify. Expensive, model-dependent, and the model can still misjudge.
+
+**Route B — Double-Check** (External Enforcement):
+Don't ask the model to verify. Enforce it from outside via plugin hooks.
+Works with ANY model, TODAY.
+
+The name "Double-Check" reflects the core insight: 
+AI agents have bounded rationality — they won't verify enough on their own. 
+Rather than waiting for better models, we build a system that double-checks 
+every claim, regardless of which model generates it.
+
+---
+
 ## Why
 
 LLMs hallucinate. Even at 5% error rate, AI agents produce millions of incorrect facts daily. Existing solutions fall into two camps:
