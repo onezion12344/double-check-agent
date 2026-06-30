@@ -13,19 +13,37 @@ A 5-phase verification pipeline that catches what LLMs miss. Merges 12 academic 
 
 ## Why "Double-Check"?
 
-There are two approaches to AI verification:
+AI verification is not a two-horse race. The research landscape spans **6+ distinct approaches**, each with different tradeoffs. Double-Check occupies a specific niche that none of the others fill.
 
-**Route A — Model Internalization** (OpenAI o3/o4, Claude, DeepSeek):
-Train the model to know when to verify. Expensive, model-dependent, and the model can still misjudge.
+### The Landscape
 
-**Route B — Double-Check** (External Enforcement):
-Don't ask the model to verify. Enforce it from outside via plugin hooks.
-Works with ANY model, TODAY.
+| Route | Approach | What It Checks | Examples | This Project |
+|:------|:---------|:---------------|:---------|:-------------|
+| **Training** | Train model when to (not) use tools | Reduces unnecessary tool calls | SMART (ACL 2025), Metis/HDPO, Tool-Overuse Illusion | ❌ Doesn't verify — just reduces frequency |
+| **Policy** | External gate: is this tool allowed? | Permission level, safety constraints | Veto, AgentSpec, Edictum, AGT, Probity | ❌ Blocks bad calls but doesn't verify correctness |
+| **Planning** | Pre-execution: optimal tool chain | Cost-aware tool sequencing | Feasible is Not Enough (ACL 2026), ToolTree (ICLR 2026), AutoTool (AAAI 2026) | ❌ Plans before execution, doesn't audit after |
+| **Selection-time** | Self-verify: is this the right tool? | Distinguish close candidates | ToolVerifier (Meta 2024) | ❌ Verifies during selection, not after |
+| **Runtime guard** | Deduplicate: is this call redundant? | Same tool+args repeated | Tool Spam patterns, MLflow ToolCallEfficiency, Session dedup | ❌ Catches repetition, not mis-selection |
+| **Bias analysis** | Why does model pick this tool? | Fairness across providers | BiasBusters (ICLR 2026) | ❌ Analyzes, doesn't correct |
+| **🔵 Double-Check** | **Post-hoc: was that the right tool?** | **Efficiency / redundancy / privilege / scope** | **This project — post-hoc tool selection verification** | **✅ The only approach that verifies after execution** |
 
-The name "Double-Check" reflects the core insight: 
-AI agents have bounded rationality — they won't verify enough on their own. 
-Rather than waiting for better models, we build a system that double-checks 
-every claim, regardless of which model generates it.
+**The key insight:** all 6 routes above check *something*, but none check whether the tool the agent *already called* was the optimal choice for the task. That's the gap Double-Check fills — a **post-hoc tool selection correctness verifier**, running as a 5-phase pipeline (SIFT → CoVe+FIRE → FABLE → Truth Sandwich).
+
+### Where Double-Check Sits
+
+The project has **two layers**:
+
+| Layer | What | Portability |
+|:------|:-----|:------------|
+| **SKILL.md** (methodology) | 5-phase pipeline doc | **Any LLM** — load as system prompt, works on Claude Code, ChatGPT, OpenClaw, Cursor, any API |
+| **Hermes Plugin** (auto hooks) | Always-on pre/post verification | **Hermes Agent** (tested) — other platforms theoretically possible but not yet tested |
+
+The methodology is fully portable. The automatic enforcement via lifecycle hooks is currently Hermes-native but could be adapted.
+
+### The Bounded Rationality Problem
+
+AI agents have bounded rationality — they won't verify enough on their own.  
+Rather than waiting for better models, we build a system that double-checks every claim, regardless of which model generates it.
 
 ---
 
