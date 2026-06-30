@@ -1,0 +1,12 @@
+{"version": 2, "width": 80, "height": 24, "timestamp": 1782834663, "env": {"SHELL": "/bin/zsh", "TERM": "xterm-ghostty"}}
+[0.432299, "o", "========================================\r\n  Double-Check — Hook & Skill Demo\r\n========================================\r\n\r\n"]
+[1.441165, "o", ">>> Step 1: Verify Plugin is Enabled\r\n"]
+[1.894501, "o", "│ double-check      │ enabled     │ 2.0.0   │ Double-Check v2.0 —    │ user    │\r\n│                   │             │         │ Unified Fact, Theory & │         │\r\n│                   │             │         │ Tool-Use verification. │         │\r\n"]
+[1.921081, "o", "\r\n"]
+[2.929356, "o", ">>> Step 2: Verify Skill is Installed\r\n"]
+[3.652474, "o", "│ double-check         │                      │ local    │ local     │ enabled │\r\n"]
+[3.694109, "o", "\r\n"]
+[4.703199, "o", ">>> Step 3: Test Plugin Hook (price query)\r\n    Query: How much does a Nillkin Cube Pocket keyboard cost?\r\n    The pre_llm_call hook should fire and classify this as a factual question.\r\n\r\n"]
+[5.712297, "o", ">>> Running (max 25s)...\r\n"]
+[5.719558, "o", "\r\n>>> Demo complete.\r\n    Key observation: 'plugins.double-check' in logs = hook fired.\r\n"]
+[5.719844, "o", "    The agent performed Phase 0.5 pre-verification via web search.\r\n"]

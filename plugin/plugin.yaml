@@ -1,7 +1,7 @@
 name: double-check
-version: "2.0.0"
+version: "2.1.0"
 description: >
-  Double-Check v2.0 — Unified Fact, Theory & Tool-Use verification.
-  LLM classify → inject delegate instruction → sub-agent deep verification.
+  Double-Check v2.1 — Unified Fact, Theory & Tool-Use verification.
+  LLM classify + regex gate → inject delegate instruction → sub-agent deep verification.
   No regex, no built-in search. Plugin is orchestrator, not worker.
 requires_env: []

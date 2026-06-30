@@ -16,8 +16,56 @@ Three pillars:
 
 import json
 import logging
+import re
 
 logger = logging.getLogger("plugins.double-check")
+
+# Regex gate: skip clearly non-factual messages fast
+_GENERAL_PATTERNS = re.compile(
+    r"^(hi|hello|hey|thanks|ok|okay|bye|goodbye|yes|no|nope|yep|"
+    r"どうも|ありがとう|すみません|おはよう|こんにちは|こんばんは|"
+    r"早上好|下午好|晚上好|你好|您好|谢谢|再见|好的|嗯|好的吧|"
+    r"明白了|知道了|了|好|行|可以|没问题|随便|看看|"
+    r"lol|lmao|nice|great|awesome|cool|wow|omg|wtf|"
+    r"test|testing|demo)$",
+    re.IGNORECASE,
+)
+
+_FACTUAL_TRIGGERS = re.compile(
+    r"(价格|多少|多少钱|¥|\$|€|£|成本|费用|预算|"
+    r"几点|什么时候|多久|时间|地址|在哪|怎么去|"
+    r"参数|规格|配置|尺寸|重量|版本|型号|"
+    r"有什么区别|对比|vs|versus|哪个好|推荐|"
+    r"怎么|如何|步骤|教程|能不能|是否支持|"
+    r"price|cost|how much|when|where|address|"
+    r"spec|specs|size|weight|model|version|"
+    r"compare|difference|vs|versus|recommend|"
+    r"how to|tutorial|steps|does it support)",
+    re.IGNORECASE,
+)
+
+def _safe_json_parse(raw: str) -> dict | None:
+    """Parse JSON from LLM output with tolerance for leading/trailing noise."""
+    if not raw:
+        return None
+    raw = raw.strip()
+    # Try direct parse first
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        pass
+    # Try extracting {...} or [...] block
+    for delim in ("{", "["):
+        start = raw.find(delim)
+        if start == -1:
+            continue
+        end = raw.rfind("}" if delim == "{" else "]")
+        if end > start:
+            try:
+                return json.loads(raw[start:end + 1])
+            except json.JSONDecodeError:
+                continue
+    return None
 
 CLASSIFY_PROMPT = """Analyze this user question and return ONLY a JSON object (no other text):
 
@@ -54,13 +102,30 @@ Response: {response}"""
 
 
 def _classify(llm_complete, question: str) -> dict:
-    """Use LLM to classify question type and extract claims."""
+    """Use regex gate → LLM to classify question type and extract claims."""
+    # Regex gate 1: pure greeting/acknowledgment — skip entirely
+    if _GENERAL_PATTERNS.match(question.strip()):
+        return {"question_type": "general", "claims": [], "time_sensitive": False, "confidence": "low"}
+
+    # Regex gate 2: factual trigger detected → force classify, skip LLM for obvious cases?
+    # We still call LLM for semantic classification, but this could be optimized further.
+    has_factual_trigger = bool(_FACTUAL_TRIGGERS.search(question))
+
     try:
         raw = llm_complete(CLASSIFY_PROMPT.format(question=question[:600]))
-        return json.loads(raw)
-    except (json.JSONDecodeError, TypeError, Exception) as e:
-        logger.warning("Classify failed: %s", e)
-        return {"question_type": "general", "claims": [], "time_sensitive": False, "confidence": "low"}
+        result = _safe_json_parse(raw)
+        if result and result.get("question_type"):
+            # If regex detected factual trigger but LLM says "general", trust the LLM
+            # but flag for review
+            return result
+    except Exception as e:
+        logger.warning("Classify LLM call failed: %s", e)
+
+    # Fallback: use regex trigger as hint
+    if has_factual_trigger:
+        logger.info("Classify fallback: regex triggered → factual")
+        return {"question_type": "factual", "claims": [question[:200]], "time_sensitive": True, "confidence": "low"}
+    return {"question_type": "general", "claims": [], "time_sensitive": False, "confidence": "low"}
 
 
 def _post_check(llm_complete, response: str) -> dict:
@@ -88,10 +153,40 @@ def _build_pre_instruction(qtype: str, claims: list, time_sensitive: bool) -> st
             lines.append(f"  • {c}")
     if time_sensitive:
         lines.append("\n⚠️ **包含时效敏感信息** — 必须搜索当前实时数据")
+
+    # Pillar-specific verification methodology
+    if qtype == "factual":
+        lines.extend([
+            "\n**事实验证方法:**",
+            "1. Phase 0.5: 提取所有事实主张 → 标记时效敏感项",
+            "2. CoVe: 从≥2个独立角度搜索，不参考已有回答",
+            "3. FIRE: 如果搜索结果不足，迭代更换搜索词",
+            "4. IFCN 标准: 每条主张 ≥2 个独立来源",
+            "5. 每个主张标注 ✅/⚡/❓/❌ 状态",
+        ])
+    elif qtype == "theory":
+        lines.extend([
+            "\n**逻辑/理论验证方法 (FLICC + Toulmin):**",
+            "1. FLICC 框架: 检查 Fake experts / Logical fallacies / Impossible expectations / Cherry picking / Conspiracy",
+            "2. Toulmin 模型: Claim → Data → Warrant → Qualifier → Rebuttal",
+            "3. FoVer: 将关键主张形式化为一阶逻辑 → 验证一致性",
+            "4. 检查: 循环论证 / 虚假二分 / 滑坡谬误 / 稻草人 / 诉诸情感",
+        ])
+    elif qtype == "tool_use":
+        lines.extend([
+            "\n**工具选择验证方法 (6-路线分类):**",
+            "1. 效率: 有没有更便宜/更快完成同一目标的工具？",
+            "2. 冗余: 信息是否可从之前调用获得？",
+            "3. 组合: 是否有组合方案优于单一工具？",
+            "4. Over-privilege: 是否选了权限过大但不需要的？",
+            "5. Over-scope: 工具执行范围是否超出问题需求？",
+            "6. 参考: ToolTree, Feasible is Not Enough, AutoTool 等规划方法",
+        ])
+
     lines.extend([
-        "\n**请在回答前执行:**",
+        "\n**通用执行步骤:**",
         "1. 调用 `delegate_task` 启动子 agent",
-        "2. 子 agent: 全量搜索 → 交叉验证 ≥2 源 → 结构化返回",
+        "2. 子 agent: 按上述方法全量搜索 → 交叉验证 → 结构化返回",
         "3. 等子 agent 返回后，用验证结果回答",
         "4. 每个主张标注来源",
     ])
@@ -162,14 +257,31 @@ def register(ctx):
     # Command: /factcheck
     # ═══════════════════════════════════════════════
     def handle_factcheck(args):
+        if args and args.strip():
+            target = args.strip()
+            nl = "\n"
+            return (
+                f"🔍 **Double-Check Deep Audit — 已触发**{nl}{nl}"
+                f"待核查内容: {target[:200]}...{nl}{nl}"
+                f"请执行完整的 4 轮核查:{nl}"
+                f"1. SIFT — 源码对照{nl}"
+                f"2. CoVe+FIRE — 独立交叉验证 (≥2源){nl}"
+                f"3. FABLE — 影响分级 (🔴/🟡/🟢){nl}"
+                f"4. Truth Sandwich — 结构化修正{nl}{nl}"
+                f"使用 `delegate_task` 启动子 agent 执行全流程。"
+            )
+        nl = "\n"
         return (
-            "🔍 **Double-Check v2.0 — Active**\n\n"
-            "自动检测问题类型 → delegate 子 agent 验证 → 返回验证结果。\n\n"
-            "三大支柱:\n"
-            "  • 🔍 Fact — 事实性主张验证\n"
-            "  • 🧠 Theory — 逻辑/推理验证\n"
-            "  • 🔧 Tool Use — 工具选择审计\n\n"
-            "子 agent 执行全量搜索 + 交叉验证 + 结构化返回。"
+            f"🔍 **Double-Check v2.1 — Active**{nl}{nl}"
+            f"自动检测问题类型 → delegate 子 agent 验证 → 返回验证结果。{nl}{nl}"
+            f"三大支柱:{nl}"
+            f"  • 🔍 Fact — 事实性主张验证 (CoVe+FIRE+IFCN){nl}"
+            f"  • 🧠 Theory — 逻辑/推理验证 (FLICC+Toulmin+FoVer){nl}"
+            f"  • 🔧 Tool Use — 工具选择审计 (6-路线分类 + post-hoc){nl}{nl}"
+            f"子 agent 执行全量搜索 + 交叉验证 + 结构化返回。{nl}{nl}"
+            f"用法:{nl}"
+            f"  /factcheck — 显示状态{nl}"
+            f"  /factcheck &lt;text&gt; — 对指定内容执行深度 4 轮审计"
         )
 
     ctx.register_command(
