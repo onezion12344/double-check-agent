@@ -17,8 +17,119 @@ Three pillars:
 import json
 import logging
 import re
+import os
+import urllib.request
+import urllib.error
 
 logger = logging.getLogger("plugins.double-check")
+
+# ── Cheap router model (auto-discovered on first load) ──
+_ROUTER_MODEL = None  # e.g. "free-trial/gpt-3.5-turbo"
+_ROUTER_API_KEY = None
+_ROUTER_BASE = "https://openrouter.ai/api/v1"
+_ROUTER_DISCOVERED = False
+
+def _discover_router():
+    """Try to find a free/cheap model for routing. Runs once on plugin load."""
+    global _ROUTER_MODEL, _ROUTER_API_KEY, _ROUTER_DISCOVERED
+    if _ROUTER_DISCOVERED:
+        return
+    _ROUTER_DISCOVERED = True
+
+    # 1. Try OpenRouter key from env or Hermes config path
+    for key_name in ["OPENROUTER_API_KEY", "OPENAI_API_KEY"]:
+        k = os.environ.get(key_name)
+        if k:
+            _ROUTER_API_KEY = k
+            break
+    if not _ROUTER_API_KEY:
+        # Try reading from Hermes config
+        try:
+            config_path = os.path.expanduser("~/.hermes/config.yaml")
+            if os.path.exists(config_path):
+                with open(config_path) as f:
+                    for line in f:
+                        if "openrouter" in line.lower() and "api_key" in line.lower():
+                            parts = line.split(":")
+                            if len(parts) >= 2:
+                                _ROUTER_API_KEY = parts[1].strip().strip('"').strip("'")
+                                break
+        except Exception:
+            pass
+
+    if not _ROUTER_API_KEY:
+        logger.info("No router API key found — using main model for classify")
+        return
+
+    # 2. Fetch free models from OpenRouter
+    try:
+        req = urllib.request.Request(f"{_ROUTER_BASE}/models")
+        req.add_header("Authorization", f"Bearer {_ROUTER_API_KEY}")
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read())
+
+        # Find free models, prefer fastest (smallest context)
+        free_models = []
+        for m in data.get("data", []):
+            pricing = m.get("pricing", {})
+            prompt_price = float(pricing.get("prompt", "1"))
+            completion_price = float(pricing.get("completion", "1"))
+            if prompt_price == 0 and completion_price == 0:
+                name = m["id"]
+                ctx = m.get("context_length", 0)
+                free_models.append((name, ctx))
+
+        if not free_models:
+            # Try models with very low price instead
+            for m in data.get("data", []):
+                pricing = m.get("pricing", {})
+                prompt_price = float(pricing.get("prompt", "1"))
+                if prompt_price < 0.0001:  # <$0.10/M tokens
+                    name = m["id"]
+                    ctx = m.get("context_length", 0)
+                    free_models.append((name, ctx))
+
+        if free_models:
+            # Sort by context length ascending (smaller = faster)
+            free_models.sort(key=lambda x: x[1])
+            _ROUTER_MODEL = free_models[0][0]
+            logger.info(
+                "Router model: %s (free, %d ctx, %d candidates)",
+                _ROUTER_MODEL, free_models[0][1], len(free_models)
+            )
+        else:
+            logger.info("No free model found on OpenRouter — using main model")
+    except Exception as e:
+        logger.warning("Router discovery failed: %s — using main model", e)
+
+
+def _router_complete(prompt: str) -> str:
+    """Call the cheap router model. Falls back to ctx.llm.complete pattern."""
+    if not _ROUTER_MODEL or not _ROUTER_API_KEY:
+        return None  # caller should fall back
+
+    body = json.dumps({
+        "model": _ROUTER_MODEL,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.1,
+        "max_tokens": 300,
+    }).encode()
+
+    req = urllib.request.Request(
+        f"{_ROUTER_BASE}/chat/completions",
+        data=body,
+        headers={
+            "Authorization": f"Bearer {_ROUTER_API_KEY}",
+            "Content-Type": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            result = json.loads(resp.read())
+        return result["choices"][0]["message"]["content"]
+    except Exception as e:
+        logger.warning("Router call failed: %s", e)
+        return None
 
 # Regex gate: skip clearly non-factual messages fast
 _GENERAL_PATTERNS = re.compile(
@@ -102,26 +213,30 @@ Response: {response}"""
 
 
 def _classify(llm_complete, question: str) -> dict:
-    """Use regex gate → LLM to classify question type and extract claims."""
+    """Use regex gate → cheap router LLM → fallback main LLM to classify."""
     # Regex gate 1: pure greeting/acknowledgment — skip entirely
     if _GENERAL_PATTERNS.match(question.strip()):
         return {"question_type": "general", "claims": [], "time_sensitive": False, "confidence": "low"}
 
-    # Regex gate 2: factual trigger detected → force classify, skip LLM for obvious cases?
-    # We still call LLM for semantic classification, but this could be optimized further.
     has_factual_trigger = bool(_FACTUAL_TRIGGERS.search(question))
 
+    # Try cheap router model first (faster, cheaper)
+    raw = _router_complete(CLASSIFY_PROMPT.format(question=question[:600]))
+    if raw:
+        result = _safe_json_parse(raw)
+        if result and result.get("question_type"):
+            return result
+
+    # Fallback: main model
     try:
         raw = llm_complete(CLASSIFY_PROMPT.format(question=question[:600]))
         result = _safe_json_parse(raw)
         if result and result.get("question_type"):
-            # If regex detected factual trigger but LLM says "general", trust the LLM
-            # but flag for review
             return result
     except Exception as e:
         logger.warning("Classify LLM call failed: %s", e)
 
-    # Fallback: use regex trigger as hint
+    # Final fallback: regex hint
     if has_factual_trigger:
         logger.info("Classify fallback: regex triggered → factual")
         return {"question_type": "factual", "claims": [question[:200]], "time_sensitive": True, "confidence": "low"}
@@ -129,13 +244,23 @@ def _classify(llm_complete, question: str) -> dict:
 
 
 def _post_check(llm_complete, response: str) -> dict:
-    """Use LLM to check if response needs post-verification."""
+    """Use cheap router model first, fallback main model."""
+    # Try cheap router model first
+    raw = _router_complete(POST_CHECK_PROMPT.format(response=response[:1000]))
+    if raw:
+        result = _safe_json_parse(raw)
+        if result and "needs_check" in result:
+            return result
+
+    # Fallback: main model
     try:
         raw = llm_complete(POST_CHECK_PROMPT.format(response=response[:1000]))
-        return json.loads(raw)
+        result = _safe_json_parse(raw)
+        if result and "needs_check" in result:
+            return result
     except (json.JSONDecodeError, TypeError, Exception) as e:
         logger.warning("Post-check failed: %s", e)
-        return {"needs_check": False, "claim_count": 0, "reason": "classification failed"}
+    return {"needs_check": False, "claim_count": 0, "reason": "classification failed"}
 
 
 def _build_pre_instruction(qtype: str, claims: list, time_sensitive: bool) -> str:
@@ -205,7 +330,8 @@ def _build_post_instruction(claim_count: int) -> str:
 
 
 def register(ctx):
-    """Register Double-Check hooks."""
+    """Register Double-Check hooks. Auto-discovers cheap router model on load."""
+    _discover_router()
 
     # ═══════════════════════════════════════════════
     # pre_llm_call — Classify → inject delegate
@@ -271,8 +397,10 @@ def register(ctx):
                 f"使用 `delegate_task` 启动子 agent 执行全流程。"
             )
         nl = "\n"
+        router_info = f"Router: {_ROUTER_MODEL or 'main model (no free model found)'}"
         return (
             f"🔍 **Double-Check v2.1 — Active**{nl}{nl}"
+            f"{router_info}{nl}"
             f"自动检测问题类型 → delegate 子 agent 验证 → 返回验证结果。{nl}{nl}"
             f"三大支柱:{nl}"
             f"  • 🔍 Fact — 事实性主张验证 (CoVe+FIRE+IFCN){nl}"
@@ -290,4 +418,7 @@ def register(ctx):
         description="Show Double-Check v2.0 status",
     )
 
-    logger.info("Double-Check Plugin v2.0 loaded — LLM classify + delegate pattern")
+    logger.info(
+        "Double-Check Plugin v2.1 loaded — router=%s, regex gate + 3-pillar classify",
+        _ROUTER_MODEL or "main-model",
+    )
